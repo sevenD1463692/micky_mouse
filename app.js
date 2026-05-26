@@ -2,6 +2,7 @@
 let currentCategory = 'all';
 let currentRestaurant = null;
 let searchQuery = '';
+let showOpenOnly = false;
 
 // DOM Elements
 const homeView = document.getElementById('homeView');
@@ -20,6 +21,10 @@ function init() {
     renderRestaurants();
     setupEventListeners();
     initTheme();
+    
+    // Initial sync and start background timer for live status updates
+    updateLiveStatuses();
+    setInterval(updateLiveStatuses, 30000);
 }
 
 // Storage Management
@@ -77,6 +82,14 @@ function setupEventListeners() {
     backBtn.addEventListener('click', () => {
         showHomeView();
     });
+
+    const openOnlyToggle = document.getElementById('openOnlyToggle');
+    if (openOnlyToggle) {
+        openOnlyToggle.addEventListener('change', (e) => {
+            showOpenOnly = e.target.checked;
+            renderRestaurants();
+        });
+    }
 }
 
 // Rendering
@@ -111,6 +124,11 @@ function renderRestaurants() {
         filtered = filtered.filter(r => r.name.toLowerCase().includes(searchQuery) || r.tags.some(tag => tag.toLowerCase().includes(searchQuery)));
     }
 
+    // Filter by open only
+    if (showOpenOnly) {
+        filtered = filtered.filter(r => isRestaurantOpen(r.hours));
+    }
+
     if (filtered.length === 0) {
         restaurantGrid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
@@ -121,33 +139,117 @@ function renderRestaurants() {
         return;
     }
 
-    restaurantGrid.innerHTML = filtered.map(r => `
-        <div class="restaurant-card" onclick="showDetailView(${r.id})">
-            <img src="${r.image}" alt="${r.name}" class="card-image">
-            <div class="card-content">
-                <div class="card-header">
-                    <h3 class="card-title">${r.name}</h3>
-                    <div class="card-rating">
-                        <i class="ph-fill ph-star"></i>
-                        <span>${r.rating}</span>
-                        <span class="review-count">(${r.reviewCount})</span>
+    restaurantGrid.innerHTML = filtered.map(r => {
+        const isOpen = isRestaurantOpen(r.hours);
+        return `
+            <div class="restaurant-card" onclick="showDetailView(${r.id})">
+                <div class="status-badge ${isOpen ? 'open' : 'closed'}" data-restaurant-id="${r.id}">
+                    <span class="status-dot"></span>
+                    <span class="status-text">${isOpen ? '營業中' : '已打烊'}</span>
+                </div>
+                <img src="${r.image}" alt="${r.name}" class="card-image">
+                <div class="card-content">
+                    <div class="card-header">
+                        <h3 class="card-title">${r.name}</h3>
+                        <div class="card-rating">
+                            <i class="ph-fill ph-star"></i>
+                            <span>${r.rating}</span>
+                            <span class="review-count">(${r.reviewCount})</span>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        <span>${r.price}</span> • <span>${getCategoryName(r.category)}</span>
+                    </div>
+                    <div class="card-tags">
+                        ${r.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
                     </div>
                 </div>
-                <div class="card-info">
-                    <span>${r.price}</span> • <span>${getCategoryName(r.category)}</span>
-                </div>
-                <div class="card-tags">
-                    ${r.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function getCategoryName(id) {
     const cat = mockData.categories.find(c => c.id === id);
     return cat ? cat.name : '';
 }
+
+function isRestaurantOpen(hoursStr) {
+    if (!hoursStr) return false;
+    const match = hoursStr.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+    if (!match) return false;
+    
+    const [_, startH, startM, endH, endM] = match;
+    const startMinutes = parseInt(startH, 10) * 60 + parseInt(startM, 10);
+    const endMinutes = parseInt(endH, 10) * 60 + parseInt(endM, 10);
+    
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    
+    if (startMinutes <= endMinutes) {
+        return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+    } else {
+        // Over midnight
+        return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+    }
+}
+
+function updateLiveStatuses() {
+    // 1. Update elements in home grid
+    const homeGridBadges = document.querySelectorAll('.restaurant-grid .status-badge');
+    homeGridBadges.forEach(badge => {
+        const id = parseInt(badge.dataset.restaurantId, 10);
+        const rest = mockData.restaurants.find(r => r.id === id);
+        if (rest) {
+            const isOpen = isRestaurantOpen(rest.hours);
+            const statusTextEl = badge.querySelector('.status-text');
+            
+            if (isOpen) {
+                if (!badge.classList.contains('open')) {
+                    badge.classList.remove('closed');
+                    badge.classList.add('open');
+                }
+                if (statusTextEl && statusTextEl.textContent !== '營業中') {
+                    statusTextEl.textContent = '營業中';
+                }
+            } else {
+                if (!badge.classList.contains('closed')) {
+                    badge.classList.remove('open');
+                    badge.classList.add('closed');
+                }
+                if (statusTextEl && statusTextEl.textContent !== '已打烊') {
+                    statusTextEl.textContent = '已打烊';
+                }
+            }
+        }
+    });
+
+    // 2. Update element in detail view
+    const detailBadge = document.getElementById('detailStatusBadge');
+    if (detailBadge && currentRestaurant) {
+        const isOpen = isRestaurantOpen(currentRestaurant.hours);
+        const statusTextEl = detailBadge.querySelector('.status-text');
+        
+        if (isOpen) {
+            if (!detailBadge.classList.contains('open')) {
+                detailBadge.classList.remove('closed');
+                detailBadge.classList.add('open');
+            }
+            if (statusTextEl && statusTextEl.textContent !== '營業中') {
+                statusTextEl.textContent = '營業中';
+            }
+        } else {
+            if (!detailBadge.classList.contains('closed')) {
+                detailBadge.classList.remove('open');
+                detailBadge.classList.add('closed');
+            }
+            if (statusTextEl && statusTextEl.textContent !== '已打烊') {
+                statusTextEl.textContent = '已打烊';
+            }
+        }
+    }
+}
+
 
 // Views Navigation
 function showHomeView() {
@@ -169,6 +271,7 @@ function showDetailView(id) {
 
 function renderDetailContent() {
     const r = currentRestaurant;
+    const isOpen = isRestaurantOpen(r.hours);
     
     detailContent.innerHTML = `
         <div class="detail-header">
@@ -176,6 +279,10 @@ function renderDetailContent() {
             <div class="detail-overlay">
                 <h2 class="detail-title">${r.name}</h2>
                 <div class="detail-meta">
+                    <span class="detail-status-pill ${isOpen ? 'open' : 'closed'}" id="detailStatusBadge">
+                        <span class="status-dot"></span>
+                        <span class="status-text">${isOpen ? '營業中' : '已打烊'}</span>
+                    </span>
                     <span><i class="ph-fill ph-star"></i> ${r.rating} (${r.reviewCount} 則評價)</span>
                     <span>${r.price}</span>
                     <span>${getCategoryName(r.category)}</span>

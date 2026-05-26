@@ -43,7 +43,14 @@
                 </section>
                 
                 <section class="restaurant-list-section">
-                    <h2>推薦美食</h2>
+                    <div class="section-header">
+                        <h2>推薦美食</h2>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="openOnlyToggle">
+                            <span class="slider"></span>
+                            <span class="toggle-label">只看營業中</span>
+                        </label>
+                    </div>
                     <div class="restaurant-grid" id="restaurantGrid">
                         <!-- Restaurant cards injected by JS -->
                     </div>
