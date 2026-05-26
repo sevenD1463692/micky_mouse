@@ -35,6 +35,34 @@
         <main id="mainContent">
             <!-- Home View (Categories & List) -->
             <div id="homeView" class="view active">
+                <!-- Location Control Panel -->
+                <section class="location-panel">
+                    <div class="location-container">
+                        <div class="location-info">
+                            <div class="location-icon-wrapper">
+                                <i class="ph ph-map-pin"></i>
+                            </div>
+                            <div class="location-details">
+                                <span class="location-label">目前定位中心</span>
+                                <span id="currentLocationName" class="location-name">逢甲大學正門 (模擬)</span>
+                            </div>
+                        </div>
+                        <div class="location-actions">
+                            <button id="getLocationBtn" class="location-btn">
+                                <i class="ph ph-gps"></i> 使用 GPS 定位
+                            </button>
+                            <div class="select-wrapper">
+                                <select id="mockLocationSelect" class="location-select">
+                                    <option value="fcu-gate" selected>📍 模擬：逢甲大學正門</option>
+                                    <option value="fcu-ie">📍 模擬：逢甲大學資電館</option>
+                                    <option value="night-market">📍 模擬：逢甲夜市入口</option>
+                                    <option value="mcdonalds">📍 模擬：逢甲麥當勞</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <section class="categories">
                     <h2>分類探索</h2>
                     <div class="category-list" id="categoryList">
@@ -43,7 +71,17 @@
                 </section>
                 
                 <section class="restaurant-list-section">
-                    <h2>推薦美食</h2>
+                    <div class="section-header-flex">
+                        <h2>推薦美食</h2>
+                        <div class="sort-tabs" id="sortTabs">
+                            <button class="sort-tab active" data-sort="recommended">
+                                <i class="ph-fill ph-sparkles"></i> 綜合推薦
+                            </button>
+                            <button class="sort-tab" data-sort="distance">
+                                <i class="ph-fill ph-compass"></i> 距離最近
+                            </button>
+                        </div>
+                    </div>
                     <div class="restaurant-grid" id="restaurantGrid">
                         <!-- Restaurant cards injected by JS -->
                     </div>
