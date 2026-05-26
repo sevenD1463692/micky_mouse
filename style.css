@@ -662,6 +662,41 @@ textarea:focus {
     box-shadow: var(--shadow-md);
 }
 
+/* Report Button styling */
+.report-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    height: fit-content;
+    align-self: flex-start;
+}
+
+.report-btn:hover {
+    border-color: var(--metric-poor);
+    color: var(--metric-poor);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.report-btn i {
+    font-size: 0.875rem;
+}
+
+.report-count {
+    background: var(--bg-color);
+    padding: 0.05rem 0.25rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
     .header {

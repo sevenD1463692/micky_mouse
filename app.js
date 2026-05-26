@@ -25,16 +25,35 @@ function init() {
 // Storage Management
 function loadReviewsFromStorage() {
     const storedReviews = localStorage.getItem('fcuEatsReviews');
-    if (storedReviews) {
-        const parsed = JSON.parse(storedReviews);
-        mockData.restaurants.forEach(r => {
-            if (parsed[r.id]) {
-                // Prepend stored reviews
-                r.reviews = [...parsed[r.id], ...r.reviews];
-                r.reviewCount = r.reviews.length;
+    const storedReports = localStorage.getItem('fcuEatsReports');
+    const storedDeleted = localStorage.getItem('fcuEatsDeletedReviews');
+    
+    const parsedReviews = storedReviews ? JSON.parse(storedReviews) : {};
+    const parsedReports = storedReports ? JSON.parse(storedReports) : {};
+    const parsedDeleted = storedDeleted ? JSON.parse(storedDeleted) : [];
+
+    mockData.restaurants.forEach(r => {
+        // 1. Merge user reviews from storage, preventing duplicates
+        if (parsedReviews[r.id]) {
+            const userReviews = parsedReviews[r.id].filter(ur => !r.reviews.some(ex => ex.id === ur.id));
+            r.reviews = [...userReviews, ...r.reviews];
+        }
+
+        // 2. Set report counts from storage
+        r.reviews.forEach(rev => {
+            if (parsedReports[rev.id] !== undefined) {
+                rev.reports = parsedReports[rev.id];
+            } else if (rev.reports === undefined) {
+                rev.reports = 0;
             }
         });
-    }
+
+        // 3. Filter out deleted reviews and those with > 10 reports
+        r.reviews = r.reviews.filter(rev => !parsedDeleted.includes(rev.id) && rev.reports <= 10);
+        
+        // 4. Update count
+        r.reviewCount = r.reviews.length;
+    });
 }
 
 function saveReviewToStorage(restaurantId, review) {
@@ -45,6 +64,46 @@ function saveReviewToStorage(restaurantId, review) {
     }
     parsed[restaurantId].unshift(review);
     localStorage.setItem('fcuEatsReviews', JSON.stringify(parsed));
+}
+
+function saveReportsToStorage(restaurantId, reviewId, reports) {
+    const storedReports = localStorage.getItem('fcuEatsReports');
+    const parsedReports = storedReports ? JSON.parse(storedReports) : {};
+    parsedReports[reviewId] = reports;
+    localStorage.setItem('fcuEatsReports', JSON.stringify(parsedReports));
+    
+    // Update inside stored user reviews if present
+    const storedReviews = localStorage.getItem('fcuEatsReviews');
+    if (storedReviews) {
+        const parsedReviews = JSON.parse(storedReviews);
+        if (parsedReviews[restaurantId]) {
+            const rev = parsedReviews[restaurantId].find(r => r.id === reviewId);
+            if (rev) {
+                rev.reports = reports;
+                localStorage.setItem('fcuEatsReviews', JSON.stringify(parsedReviews));
+            }
+        }
+    }
+}
+
+function deleteReviewFromStorage(restaurantId, reviewId) {
+    // 1. Add to deleted reviews list
+    const storedDeleted = localStorage.getItem('fcuEatsDeletedReviews');
+    const parsedDeleted = storedDeleted ? JSON.parse(storedDeleted) : [];
+    if (!parsedDeleted.includes(reviewId)) {
+        parsedDeleted.push(reviewId);
+        localStorage.setItem('fcuEatsDeletedReviews', JSON.stringify(parsedDeleted));
+    }
+    
+    // 2. Remove from user reviews storage if it was a user review
+    const storedReviews = localStorage.getItem('fcuEatsReviews');
+    if (storedReviews) {
+        const parsedReviews = JSON.parse(storedReviews);
+        if (parsedReviews[restaurantId]) {
+            parsedReviews[restaurantId] = parsedReviews[restaurantId].filter(r => r.id !== reviewId);
+            localStorage.setItem('fcuEatsReviews', JSON.stringify(parsedReviews));
+        }
+    }
 }
 
 // Theme Management
@@ -296,6 +355,9 @@ function renderReviews(reviews) {
                         <div class="review-date">${rev.date}</div>
                     </div>
                 </div>
+                <button class="report-btn" onclick="reportReview(${currentRestaurant.id}, ${rev.id})" title="檢舉此評論">
+                    <i class="ph ph-flag"></i> 檢舉 <span class="report-count">${rev.reports || 0}</span>
+                </button>
             </div>
             <div class="review-ratings">
                 <div class="rating-pill">💰 價格 <i class="ph-fill ph-star"></i> ${rev.ratings.price}</div>
@@ -360,7 +422,8 @@ window.submitReview = function(e) {
         user: '逢甲在地人(測試)',
         date: new Date().toISOString().split('T')[0],
         ratings: { ...currentFormRatings },
-        comment: comment
+        comment: comment,
+        reports: 0
     };
 
     // Add to mock data
@@ -377,6 +440,38 @@ window.submitReview = function(e) {
     // Reset form
     document.getElementById('reviewForm').reset();
     setupReviewForm(); // Reset stars UI
+};
+
+window.reportReview = function(restaurantId, reviewId) {
+    const restaurant = mockData.restaurants.find(r => r.id === restaurantId);
+    if (!restaurant) return;
+    
+    const review = restaurant.reviews.find(rev => rev.id === reviewId);
+    if (!review) return;
+    
+    if (confirm('您確定要檢舉這則評論嗎？')) {
+        review.reports = (review.reports || 0) + 1;
+        
+        // Save to storage
+        saveReportsToStorage(restaurantId, reviewId, review.reports);
+        
+        if (review.reports > 10) {
+            alert('此評論因收到超過 10 次檢舉，已被系統自動移除！');
+            // Remove review from memory
+            restaurant.reviews = restaurant.reviews.filter(rev => rev.id !== reviewId);
+            restaurant.reviewCount = restaurant.reviews.length;
+            
+            // Delete review from storage completely
+            deleteReviewFromStorage(restaurantId, reviewId);
+            
+            // Re-render
+            renderDetailContent();
+            renderRestaurants(); // update count on home screen
+        } else {
+            alert(`已送出檢舉！目前累計檢舉次數：${review.reports}/11`);
+            renderDetailContent();
+        }
+    }
 };
 
 // Boot
