@@ -106,6 +106,30 @@ function deleteReviewFromStorage(restaurantId, reviewId) {
     }
 }
 
+function getUserDailyReportCount() {
+    const today = new Date().toISOString().split('T')[0];
+    const stored = localStorage.getItem('fcuEatsUserDailyReports');
+    if (!stored) return { date: today, count: 0 };
+    
+    try {
+        const parsed = JSON.parse(stored);
+        if (parsed.date !== today) {
+            return { date: today, count: 0 };
+        }
+        return parsed;
+    } catch (e) {
+        return { date: today, count: 0 };
+    }
+}
+
+function incrementUserDailyReportCount() {
+    const today = new Date().toISOString().split('T')[0];
+    const dailyInfo = getUserDailyReportCount();
+    dailyInfo.count += 1;
+    dailyInfo.date = today;
+    localStorage.setItem('fcuEatsUserDailyReports', JSON.stringify(dailyInfo));
+}
+
 // Theme Management
 function initTheme() {
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -448,8 +472,19 @@ window.reportReview = function(restaurantId, reviewId) {
     
     const review = restaurant.reviews.find(rev => rev.id === reviewId);
     if (!review) return;
+
+    // ── 每日檢舉上限：單日最多 5 次 ──
+    const dailyInfo = getUserDailyReportCount();
+    if (dailyInfo.count >= 5) {
+        alert('您今日的檢舉次數已達上限（每人每日最多 5 次），請明日再試！');
+        return;
+    }
     
     if (confirm('您確定要檢舉這則評論嗎？')) {
+        // 扣除使用者今日剩餘檢舉配額
+        incrementUserDailyReportCount();
+        const remaining = 4 - dailyInfo.count; // dailyInfo.count is before increment
+
         review.reports = (review.reports || 0) + 1;
         
         // Save to storage
@@ -468,7 +503,7 @@ window.reportReview = function(restaurantId, reviewId) {
             renderDetailContent();
             renderRestaurants(); // update count on home screen
         } else {
-            alert(`已送出檢舉！目前累計檢舉次數：${review.reports}/11`);
+            alert(`已送出檢舉！目前累計檢舉次數：${review.reports}/11\n您今日剩餘可檢舉次數：${remaining} 次`);
             renderDetailContent();
         }
     }
