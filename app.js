@@ -2,6 +2,19 @@
 let currentCategory = 'all';
 let currentRestaurant = null;
 let searchQuery = '';
+let currentPriceFilter = 'all';
+let currentSortFilter = 'default';
+let isLoading = false;
+let userAccount = localStorage.getItem('fcuEatsUser') || null;
+let isAnonymousDefault = localStorage.getItem('fcuEatsAnonymous') === 'true';
+
+// Captcha State
+let captchaSolution = 0;
+
+// Cooldown State for review submission
+let reviewCooldownActive = false;
+let reviewCooldownTimer = null;
+let lastReviewTime = {}; // Limit review frequency
 
 // DOM Elements
 const homeView = document.getElementById('homeView');
@@ -13,13 +26,54 @@ const searchInput = document.getElementById('searchInput');
 const backBtn = document.getElementById('backBtn');
 const themeToggle = document.getElementById('themeToggle');
 
+// Controls Elements
+const fontDecrease = document.getElementById('fontDecrease');
+const fontIncrease = document.getElementById('fontIncrease');
+const userStatus = document.getElementById('userStatus');
+
+// Modal Elements
+const loginModal = document.getElementById('loginModal');
+const loginModalBackdrop = document.getElementById('loginModalBackdrop');
+const closeLoginBtn = document.getElementById('closeLoginBtn');
+const loginForm = document.getElementById('loginForm');
+const nidUsername = document.getElementById('nidUsername');
+const nidPassword = document.getElementById('nidPassword');
+const anonymousDefault = document.getElementById('anonymousDefault');
+
+// Mobile Bottom Sheet & Nav Elements
+const floatingFilterBtn = document.getElementById('floatingFilterBtn');
+const bottomSheet = document.getElementById('bottomSheet');
+const bottomSheetBackdrop = document.getElementById('bottomSheetBackdrop');
+const closeBottomSheet = document.getElementById('closeBottomSheet');
+const applyFiltersBtn = document.getElementById('applyFiltersBtn');
+const navHome = document.getElementById('navHome');
+const navFilterBtn = document.getElementById('navFilterBtn');
+const navMyReviews = document.getElementById('navMyReviews');
+
+const sheetPriceOptions = document.getElementById('sheetPriceOptions');
+const sheetSortOptions = document.getElementById('sheetSortOptions');
+
 // Initialize
 function init() {
+    registerServiceWorker();
+    initFontSize();
+    initUserStatus();
     loadReviewsFromStorage();
     renderCategories();
-    renderRestaurants();
+    loadRestaurantsWithSkeleton(); // Performance Optimization
     setupEventListeners();
     initTheme();
+    setupMobileNav();
+}
+
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker registered scope:', reg.scope))
+                .catch(err => console.log('Service Worker registration failed:', err));
+        });
+    }
 }
 
 // Storage Management
@@ -47,32 +101,69 @@ function saveReviewToStorage(restaurantId, review) {
     localStorage.setItem('fcuEatsReviews', JSON.stringify(parsed));
 }
 
-// Theme Management
+// Theme Management (Light -> Dark -> Outdoor Cycle)
 function initTheme() {
-    const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (isDark) {
-        document.body.setAttribute('data-theme', 'dark');
+    const savedTheme = localStorage.getItem('fcuEatsTheme');
+    if (savedTheme) {
+        document.body.setAttribute('data-theme', savedTheme);
+        updateThemeIcon(savedTheme);
+    } else {
+        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (isDark) {
+            document.body.setAttribute('data-theme', 'dark');
+            updateThemeIcon('dark');
+        } else {
+            updateThemeIcon('light');
+        }
+    }
+}
+
+function updateThemeIcon(theme) {
+    if (theme === 'dark') {
+        themeToggle.innerHTML = '<i class="ph ph-moon"></i>';
+    } else if (theme === 'outdoor') {
+        themeToggle.innerHTML = '<i class="ph ph-glasses"></i>';
+    } else {
         themeToggle.innerHTML = '<i class="ph ph-sun"></i>';
     }
 }
 
 themeToggle.addEventListener('click', () => {
-    const isDark = document.body.getAttribute('data-theme') === 'dark';
-    if (isDark) {
-        document.body.removeAttribute('data-theme');
-        themeToggle.innerHTML = '<i class="ph ph-moon"></i>';
+    const currentTheme = document.body.getAttribute('data-theme');
+    let nextTheme = 'light';
+    
+    if (currentTheme === 'dark') {
+        nextTheme = 'outdoor';
+    } else if (currentTheme === 'outdoor') {
+        nextTheme = 'light';
     } else {
-        document.body.setAttribute('data-theme', 'dark');
-        themeToggle.innerHTML = '<i class="ph ph-sun"></i>';
+        nextTheme = 'dark';
     }
+    
+    if (nextTheme === 'light') {
+        document.body.removeAttribute('data-theme');
+    } else {
+        document.body.setAttribute('data-theme', nextTheme);
+    }
+    
+    localStorage.setItem('fcuEatsTheme', nextTheme);
+    updateThemeIcon(nextTheme);
 });
 
-// Event Listeners
+// Event Listeners with Debounce for search
+function debounce(func, delay) {
+    let timeout;
+    return function (...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), delay);
+    };
+}
+
 function setupEventListeners() {
-    searchInput.addEventListener('input', (e) => {
+    searchInput.addEventListener('input', debounce((e) => {
         searchQuery = e.target.value.toLowerCase();
-        renderRestaurants();
-    });
+        loadRestaurantsWithSkeleton();
+    }, 250));
 
     backBtn.addEventListener('click', () => {
         showHomeView();
@@ -93,13 +184,36 @@ function renderCategories() {
         chip.addEventListener('click', (e) => {
             currentCategory = e.currentTarget.dataset.id;
             renderCategories(); // Re-render to update active state
-            renderRestaurants();
+            loadRestaurantsWithSkeleton();
         });
     });
 }
 
+function loadRestaurantsWithSkeleton() {
+    isLoading = true;
+    
+    // Render skeleton cards (Performance representation)
+    const skeletonCount = 4;
+    restaurantGrid.innerHTML = Array(skeletonCount).fill(0).map(() => `
+        <div class="skeleton-card">
+            <div class="skeleton-image"></div>
+            <div class="skeleton-text title"></div>
+            <div class="skeleton-text subtitle"></div>
+            <div class="skeleton-text tags"></div>
+        </div>
+    `).join('');
+
+    // Simulate network delay (300ms) to display skeleton loader (Performance demo)
+    setTimeout(() => {
+        isLoading = false;
+        renderRestaurants();
+    }, 300);
+}
+
 function renderRestaurants() {
-    let filtered = mockData.restaurants;
+    if (isLoading) return;
+    
+    let filtered = [...mockData.restaurants];
 
     // Filter by category
     if (currentCategory !== 'all') {
@@ -111,11 +225,23 @@ function renderRestaurants() {
         filtered = filtered.filter(r => r.name.toLowerCase().includes(searchQuery) || r.tags.some(tag => tag.toLowerCase().includes(searchQuery)));
     }
 
+    // Filter by price (Bottom Sheet)
+    if (currentPriceFilter !== 'all') {
+        filtered = filtered.filter(r => r.price === currentPriceFilter);
+    }
+
+    // Sort by rating or reviews (Bottom Sheet)
+    if (currentSortFilter === 'rating') {
+        filtered.sort((a, b) => b.rating - a.rating);
+    } else if (currentSortFilter === 'reviews') {
+        filtered.sort((a, b) => b.reviewCount - a.reviewCount);
+    }
+
     if (filtered.length === 0) {
         restaurantGrid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
                 <i class="ph ph-mask-sad" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                <p>找不到符合的美食，換個關鍵字試試看吧！</p>
+                <p>找不到符合的美食，換個篩選條件試試看吧！</p>
             </div>
         `;
         return;
@@ -123,7 +249,7 @@ function renderRestaurants() {
 
     restaurantGrid.innerHTML = filtered.map(r => `
         <div class="restaurant-card" onclick="showDetailView(${r.id})">
-            <img src="${r.image}" alt="${r.name}" class="card-image">
+            <img src="${r.image}" alt="${r.name}" class="card-image" loading="lazy">
             <div class="card-content">
                 <div class="card-header">
                     <h3 class="card-title">${r.name}</h3>
@@ -155,6 +281,9 @@ function showHomeView() {
     homeView.classList.remove('hidden');
     currentRestaurant = null;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Reset mobile bottom nav active tab
+    setActiveNav(navHome);
 }
 
 function showDetailView(id) {
@@ -217,41 +346,74 @@ function renderDetailContent() {
 
                 <div class="detail-section">
                     <h3><i class="ph ph-pencil-simple"></i> 新增評價</h3>
-                    <form class="review-form" id="reviewForm" onsubmit="submitReview(event)">
-                        <div class="rating-input-group">
-                            <div class="rating-input">
-                                <span>價格划算度</span>
-                                <div class="stars-selector" data-type="price">
-                                    ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
+                    ${userAccount ? `
+                        <form class="review-form" id="reviewForm" onsubmit="submitReview(event)">
+                            <div class="rating-input-group">
+                                <div class="rating-input">
+                                    <span>價格划算度</span>
+                                    <div class="stars-selector" data-type="price">
+                                        ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
+                                    </div>
+                                </div>
+                                <div class="rating-input">
+                                    <span>份量滿意度</span>
+                                    <div class="stars-selector" data-type="portion">
+                                        ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
+                                    </div>
+                                </div>
+                                <div class="rating-input">
+                                    <span>等待時間(短至長)</span>
+                                    <div class="stars-selector" data-type="waitTime">
+                                        ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
+                                    </div>
+                                </div>
+                                <div class="rating-input">
+                                    <span>適合久坐</span>
+                                    <div class="stars-selector" data-type="sitability">
+                                        ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
+                                    </div>
                                 </div>
                             </div>
-                            <div class="rating-input">
-                                <span>份量滿意度</span>
-                                <div class="stars-selector" data-type="portion">
-                                    ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
+                            <div class="form-group">
+                                <label>留言內容</label>
+                                <textarea id="reviewComment" placeholder="分享您的真實體驗（至少 5 字，限 200 字）..." required></textarea>
+                            </div>
+                            
+                            <!-- Security and Verification -->
+                            <div class="form-group captcha-group">
+                                <label>安全驗證 (防止機器人洗版)</label>
+                                <div class="captcha-box">
+                                    <span id="captchaQuestion">載入中...</span>
+                                    <input type="number" id="captchaAnswer" placeholder="輸入答案" required>
+                                    <button type="button" id="refreshCaptcha" class="icon-btn" style="padding: 0.25rem;" aria-label="重新整理驗證碼">
+                                        <i class="ph ph-arrows-counter-clockwise"></i>
+                                    </button>
                                 </div>
                             </div>
-                            <div class="rating-input">
-                                <span>等待時間(短至長)</span>
-                                <div class="stars-selector" data-type="waitTime">
-                                    ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
-                                </div>
+
+                            <div class="form-group checkbox-group" style="margin-top: 0.5rem; margin-bottom: 0;">
+                                <label class="checkbox-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                    <input type="checkbox" id="reviewAnonymous" ${isAnonymousDefault ? 'checked' : ''} style="width: auto; min-height: auto;">
+                                    <span style="font-size: 0.9rem; color: var(--text-muted);">使用匿名身份發表 (顯示為：逢甲匿名同學)</span>
+                                </label>
                             </div>
-                            <div class="rating-input">
-                                <span>適合久坐</span>
-                                <div class="stars-selector" data-type="sitability">
-                                    ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
-                                </div>
-                            </div>
+
+                            <button type="submit" class="submit-btn" ${reviewCooldownActive ? 'disabled' : ''}>
+                                <i class="ph ph-paper-plane-right"></i> 送出評價
+                            </button>
+                            <p class="cooldown-text" style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 0.5rem;">
+                                * 送出評論後，該店家每分鐘限制評論一次。
+                            </p>
+                        </form>
+                    ` : `
+                        <div style="text-align: center; padding: 2rem; background: var(--bg-color); border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+                            <i class="ph ph-lock" style="font-size: 2.5rem; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                            <p style="margin-bottom: 1.5rem; color: var(--text-muted);">為維護評價真實性，本系統限制逢甲大學學生發表評價。</p>
+                            <button class="submit-btn" style="margin: 0 auto;" onclick="openLoginModal()">
+                                <i class="ph ph-sign-in"></i> 登入 NID 發表評價
+                            </button>
                         </div>
-                        <div class="form-group">
-                            <label>留言內容</label>
-                            <textarea id="reviewComment" placeholder="分享您的用餐體驗...（必填）" required></textarea>
-                        </div>
-                        <button type="submit" class="submit-btn">
-                            <i class="ph ph-paper-plane-right"></i> 送出評價
-                        </button>
-                    </form>
+                    `}
                 </div>
             </div>
 
@@ -317,11 +479,14 @@ let currentFormRatings = {
 };
 
 function setupReviewForm() {
+    if (!userAccount) return;
+    
     currentFormRatings = { price: 0, portion: 0, waitTime: 0, sitability: 0 };
     const selectors = document.querySelectorAll('.stars-selector');
     
     selectors.forEach(selector => {
-        const type = selector.dataset.type;
+        const type = selectors[0] ? selector.dataset.type : null; // Ensure safely referenced
+        if (!type) return;
         const stars = selector.querySelectorAll('i');
         
         stars.forEach(star => {
@@ -342,42 +507,338 @@ function setupReviewForm() {
             });
         });
     });
+
+    // Captcha Init
+    generateCaptcha();
+    const refreshBtn = document.getElementById('refreshCaptcha');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', generateCaptcha);
+    }
+}
+
+function generateCaptcha() {
+    const num1 = Math.floor(Math.random() * 9) + 1;
+    const num2 = Math.floor(Math.random() * 9) + 1;
+    const ops = ['+', '-'];
+    const op = ops[Math.floor(Math.random() * ops.length)];
+    
+    let question = '';
+    if (op === '+') {
+        question = `${num1} + ${num2} = ?`;
+        captchaSolution = num1 + num2;
+    } else {
+        if (num1 >= num2) {
+            question = `${num1} - ${num2} = ?`;
+            captchaSolution = num1 - num2;
+        } else {
+            question = `${num2} - ${num1} = ?`;
+            captchaSolution = num2 - num1;
+        }
+    }
+    
+    const captchaQ = document.getElementById('captchaQuestion');
+    if (captchaQ) {
+        captchaQ.innerText = question;
+    }
 }
 
 window.submitReview = function(e) {
     e.preventDefault();
     
-    const comment = document.getElementById('reviewComment').value;
+    if (!userAccount) {
+        openLoginModal();
+        return;
+    }
     
-    // Validate
+    if (reviewCooldownActive) {
+        alert('提交速度過快，請稍候再試！');
+        return;
+    }
+    
+    const now = Date.now();
+    const rateLimitKey = `${userAccount}_${currentRestaurant.id}`;
+    if (lastReviewTime[rateLimitKey] && (now - lastReviewTime[rateLimitKey] < 60000)) {
+        const remainingSeconds = Math.ceil((60000 - (now - lastReviewTime[rateLimitKey])) / 1000);
+        alert(`為了維持評價真實性與防止洗版，同一店家您每分鐘只能發表一次評價。請在 ${remainingSeconds} 秒後再試！`);
+        return;
+    }
+    
+    const captchaInput = document.getElementById('captchaAnswer');
+    if (!captchaInput || parseInt(captchaInput.value) !== captchaSolution) {
+        alert('安全驗證碼輸入錯誤，請重新計算！');
+        generateCaptcha();
+        if (captchaInput) captchaInput.value = '';
+        return;
+    }
+    
+    const comment = document.getElementById('reviewComment').value.trim();
+    if (comment.length < 5) {
+        alert('留言內容過短，請至少輸入 5 個字！');
+        return;
+    }
+    if (comment.length > 200) {
+        alert('留言內容過長，字數限制在 200 字以內！');
+        return;
+    }
+    
     if (Object.values(currentFormRatings).some(val => val === 0)) {
         alert('請完成所有星級評分！');
         return;
     }
-
+    
+    const escapedComment = escapeHTML(comment);
+    const isAnonymous = document.getElementById('reviewAnonymous') ? document.getElementById('reviewAnonymous').checked : isAnonymousDefault;
+    const displayName = isAnonymous ? '逢甲匿名同學' : maskUserId(userAccount);
+    
     const newReview = {
         id: Date.now(),
-        user: '逢甲在地人(測試)',
+        user: displayName,
         date: new Date().toISOString().split('T')[0],
         ratings: { ...currentFormRatings },
-        comment: comment
+        comment: escapedComment
     };
-
-    // Add to mock data
+    
     currentRestaurant.reviews.unshift(newReview);
     currentRestaurant.reviewCount += 1;
     
-    // Save to localStorage
     saveReviewToStorage(currentRestaurant.id, newReview);
+    lastReviewTime[rateLimitKey] = now;
     
-    // Re-render
+    triggerReviewCooldown();
+    
     renderDetailContent();
-    renderRestaurants(); // update count on home screen
-    
-    // Reset form
-    document.getElementById('reviewForm').reset();
-    setupReviewForm(); // Reset stars UI
+    renderRestaurants();
 };
+
+function triggerReviewCooldown() {
+    reviewCooldownActive = true;
+    let countdown = 10;
+    const submitBtn = document.querySelector('.submit-btn');
+    
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<i class="ph ph-hourglass"></i> 安全冷卻中 (${countdown}s)`;
+        
+        reviewCooldownTimer = setInterval(() => {
+            countdown--;
+            if (countdown <= 0) {
+                clearInterval(reviewCooldownTimer);
+                reviewCooldownActive = false;
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<i class="ph ph-paper-plane-right"></i> 送出評價`;
+            } else {
+                submitBtn.innerHTML = `<i class="ph ph-hourglass"></i> 安全冷卻中 (${countdown}s)`;
+            }
+        }, 1000);
+    }
+}
+
+function escapeHTML(str) {
+    return str.replace(/[&<>'"]/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag] || tag)
+    );
+}
+
+// FontSize Management
+const FONT_CLASSES = ['font-scale-small', 'font-scale-medium', 'font-scale-large', 'font-scale-xlarge'];
+let currentFontIndex = parseInt(localStorage.getItem('fcuEatsFontIndex')) || 1;
+
+function initFontSize() {
+    updateFontSizeUI();
+}
+
+function updateFontSizeUI() {
+    document.body.classList.remove(...FONT_CLASSES);
+    document.body.classList.add(FONT_CLASSES[currentFontIndex]);
+    localStorage.setItem('fcuEatsFontIndex', currentFontIndex);
+}
+
+fontDecrease.addEventListener('click', () => {
+    if (currentFontIndex > 0) {
+        currentFontIndex--;
+        updateFontSizeUI();
+    }
+});
+
+fontIncrease.addEventListener('click', () => {
+    if (currentFontIndex < FONT_CLASSES.length - 1) {
+        currentFontIndex++;
+        updateFontSizeUI();
+    }
+});
+
+// NID User Status
+function initUserStatus() {
+    if (userAccount) {
+        const maskedUser = maskUserId(userAccount);
+        userStatus.innerHTML = `
+            <div class="user-badge" title="學號: ${userAccount}">
+                <i class="ph-fill ph-user-circle-gears"></i>
+                <span>${maskedUser}</span>
+                <span class="logout-link" onclick="handleLogout()">登出</span>
+            </div>
+        `;
+    } else {
+        userStatus.innerHTML = `
+            <button id="loginBtn" class="login-btn" onclick="openLoginModal()"><i class="ph ph-sign-in"></i> NID 登入</button>
+        `;
+    }
+}
+
+function maskUserId(userId) {
+    if (!userId || userId.length < 5) return '逢甲人';
+    return userId.substring(0, 3) + '***' + userId.substring(userId.length - 2);
+}
+
+window.openLoginModal = function() {
+    loginModal.classList.remove('hidden');
+    anonymousDefault.checked = isAnonymousDefault;
+};
+
+window.closeLoginModal = function() {
+    loginModal.classList.add('hidden');
+    loginForm.reset();
+};
+
+window.handleLogout = function() {
+    if (confirm('確定要登出嗎？')) {
+        userAccount = null;
+        localStorage.removeItem('fcuEatsUser');
+        initUserStatus();
+        if (currentRestaurant) {
+            renderDetailContent();
+        }
+    }
+};
+
+loginModalBackdrop.addEventListener('click', closeLoginModal);
+closeLoginBtn.addEventListener('click', closeLoginModal);
+
+loginForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const username = nidUsername.value.trim().toUpperCase();
+    const password = nidPassword.value;
+    
+    const nidPattern = /^[dD][0-9]{7}$/;
+    if (!nidPattern.test(username)) {
+        alert('請輸入正確的逢甲學號格式 (例如 D1234567)');
+        return;
+    }
+    
+    if (password.length < 4) {
+        alert('密碼長度不足！');
+        return;
+    }
+    
+    userAccount = username;
+    isAnonymousDefault = anonymousDefault.checked;
+    localStorage.setItem('fcuEatsUser', username);
+    localStorage.setItem('fcuEatsAnonymous', isAnonymousDefault);
+    
+    initUserStatus();
+    closeLoginModal();
+    
+    if (currentRestaurant) {
+        renderDetailContent();
+    }
+    
+    alert(`NID 登入成功！歡迎，逢甲同學 (${maskUserId(username)})`);
+});
+
+// Mobile Bottom Sheet & Bottom Nav Logic
+window.openBottomSheet = function() {
+    bottomSheet.classList.remove('hidden');
+    updateFilterPillsUI();
+};
+
+window.closeBottomSheet = function() {
+    bottomSheet.classList.add('hidden');
+};
+
+bottomSheetBackdrop.addEventListener('click', closeBottomSheet);
+closeBottomSheet.addEventListener('click', closeBottomSheet);
+floatingFilterBtn.addEventListener('click', openBottomSheet);
+
+function setupMobileNav() {
+    navHome.addEventListener('click', () => {
+        setActiveNav(navHome);
+        showHomeView();
+    });
+    
+    navFilterBtn.addEventListener('click', () => {
+        setActiveNav(navFilterBtn);
+        openBottomSheet();
+    });
+    
+    navMyReviews.addEventListener('click', () => {
+        setActiveNav(navMyReviews);
+        if (userAccount) {
+            alert(`目前登入帳號為：${userAccount}\n\n您可以使用此帳號發表真實美食評價。`);
+        } else {
+            openLoginModal();
+        }
+    });
+    
+    setupBottomSheetPills();
+}
+
+function setActiveNav(activeBtn) {
+    document.querySelectorAll('.bottom-nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    activeBtn.classList.add('active');
+}
+
+function setupBottomSheetPills() {
+    const pricePills = sheetPriceOptions.querySelectorAll('.filter-pill');
+    pricePills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            pricePills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            currentPriceFilter = pill.dataset.price;
+        });
+    });
+    
+    const sortPills = sheetSortOptions.querySelectorAll('.filter-pill');
+    sortPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            sortPills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            currentSortFilter = pill.dataset.sort;
+        });
+    });
+}
+
+function updateFilterPillsUI() {
+    const pricePills = sheetPriceOptions.querySelectorAll('.filter-pill');
+    pricePills.forEach(p => {
+        if (p.dataset.price === currentPriceFilter) {
+            p.classList.add('active');
+        } else {
+            p.classList.remove('active');
+        }
+    });
+    
+    const sortPills = sheetSortOptions.querySelectorAll('.filter-pill');
+    sortPills.forEach(p => {
+        if (p.dataset.sort === currentSortFilter) {
+            p.classList.add('active');
+        } else {
+            p.classList.remove('active');
+        }
+    });
+}
+
+applyFiltersBtn.addEventListener('click', () => {
+    closeBottomSheet();
+    loadRestaurantsWithSkeleton();
+});
 
 // Boot
 init();
