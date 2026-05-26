@@ -43,7 +43,17 @@
                 </section>
                 
                 <section class="restaurant-list-section">
-                    <h2>推薦美食</h2>
+                    <div class="section-header-row">
+                        <h2>推薦美食</h2>
+                        <div class="budget-filter-container">
+                            <span class="budget-filter-label"><i class="ph ph-funnel"></i> 預算範圍</span>
+                            <div class="budget-filter-chips" id="budgetFilterChips">
+                                <button class="budget-filter-chip active" data-budget="$">$ 平價</button>
+                                <button class="budget-filter-chip active" data-budget="$$">$$ 中價</button>
+                                <button class="budget-filter-chip active" data-budget="$$$">$$$ 高價</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="restaurant-grid" id="restaurantGrid">
                         <!-- Restaurant cards injected by JS -->
                     </div>

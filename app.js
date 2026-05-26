@@ -2,6 +2,7 @@
 let currentCategory = 'all';
 let currentRestaurant = null;
 let searchQuery = '';
+let selectedBudgets = ['$', '$$', '$$$'];
 
 // DOM Elements
 const homeView = document.getElementById('homeView');
@@ -12,6 +13,7 @@ const detailContent = document.getElementById('detailContent');
 const searchInput = document.getElementById('searchInput');
 const backBtn = document.getElementById('backBtn');
 const themeToggle = document.getElementById('themeToggle');
+const budgetFilterChips = document.getElementById('budgetFilterChips');
 
 // Initialize
 function init() {
@@ -77,6 +79,34 @@ function setupEventListeners() {
     backBtn.addEventListener('click', () => {
         showHomeView();
     });
+
+    if (budgetFilterChips) {
+        budgetFilterChips.querySelectorAll('.budget-filter-chip').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const budgetVal = e.currentTarget.dataset.budget;
+                toggleBudgetFilter(budgetVal, e.currentTarget);
+            });
+        });
+    }
+}
+
+function toggleBudgetFilter(budgetVal, btnElement) {
+    const isActive = selectedBudgets.includes(budgetVal);
+    
+    // Keep at least one active to avoid empty results state
+    if (isActive && selectedBudgets.length === 1) {
+        return;
+    }
+    
+    if (isActive) {
+        selectedBudgets = selectedBudgets.filter(b => b !== budgetVal);
+        btnElement.classList.remove('active');
+    } else {
+        selectedBudgets.push(budgetVal);
+        btnElement.classList.add('active');
+    }
+    
+    renderRestaurants();
 }
 
 // Rendering
@@ -111,6 +141,19 @@ function renderRestaurants() {
         filtered = filtered.filter(r => r.name.toLowerCase().includes(searchQuery) || r.tags.some(tag => tag.toLowerCase().includes(searchQuery)));
     }
 
+    // Prioritize restaurants matching selected budgets
+    // Only sort and highlight if the user has custom-selected their budget range (not all 3 are selected)
+    const hasBudgetPreference = selectedBudgets.length < 3;
+    if (hasBudgetPreference) {
+        filtered = [...filtered].sort((a, b) => {
+            const aMatch = selectedBudgets.includes(a.price);
+            const bMatch = selectedBudgets.includes(b.price);
+            if (aMatch && !bMatch) return -1;
+            if (!aMatch && bMatch) return 1;
+            return 0; // preserve original relative order
+        });
+    }
+
     if (filtered.length === 0) {
         restaurantGrid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
@@ -121,27 +164,37 @@ function renderRestaurants() {
         return;
     }
 
-    restaurantGrid.innerHTML = filtered.map(r => `
-        <div class="restaurant-card" onclick="showDetailView(${r.id})">
-            <img src="${r.image}" alt="${r.name}" class="card-image">
-            <div class="card-content">
-                <div class="card-header">
-                    <h3 class="card-title">${r.name}</h3>
-                    <div class="card-rating">
-                        <i class="ph-fill ph-star"></i>
-                        <span>${r.rating}</span>
-                        <span class="review-count">(${r.reviewCount})</span>
+    restaurantGrid.innerHTML = filtered.map(r => {
+        const isMatching = selectedBudgets.includes(r.price);
+        const cardClass = (hasBudgetPreference && !isMatching) ? 'restaurant-card muted' : 'restaurant-card';
+        const priceTagClass = hasBudgetPreference ? (isMatching ? 'price-tag matching' : 'price-tag not-matching') : '';
+        const matchBadgeHtml = (hasBudgetPreference && isMatching) 
+            ? `<span class="budget-match-badge"><i class="ph-fill ph-check-circle"></i> 符合預算</span>` 
+            : '';
+
+        return `
+            <div class="${cardClass}" onclick="showDetailView(${r.id})">
+                <img src="${r.image}" alt="${r.name}" class="card-image">
+                <div class="card-content">
+                    <div class="card-header">
+                        <h3 class="card-title">${r.name}</h3>
+                        <div class="card-rating">
+                            <i class="ph-fill ph-star"></i>
+                            <span>${r.rating}</span>
+                            <span class="review-count">(${r.reviewCount})</span>
+                        </div>
+                    </div>
+                    <div class="card-info">
+                        <span class="${priceTagClass}">${r.price}</span> • <span>${getCategoryName(r.category)}</span>
+                        ${matchBadgeHtml}
+                    </div>
+                    <div class="card-tags">
+                        ${r.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
                     </div>
                 </div>
-                <div class="card-info">
-                    <span>${r.price}</span> • <span>${getCategoryName(r.category)}</span>
-                </div>
-                <div class="card-tags">
-                    ${r.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function getCategoryName(id) {
