@@ -145,16 +145,75 @@ function updateFavoritesBadge() {
     }
 }
 
+function showToast(message, actionText, actionCallback) {
+    let toast = document.getElementById('appToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'appToast';
+        toast.className = 'toast-container';
+        document.body.appendChild(toast);
+    }
+    
+    toast.innerHTML = `
+        <i class="ph-fill ph-heart toast-icon"></i>
+        <span style="flex-grow: 1;">${message}</span>
+        ${actionText ? `<button class="toast-action" id="toastActionBtn">${actionText}</button>` : ''}
+    `;
+    
+    toast.classList.remove('show');
+    
+    if (actionText && actionCallback) {
+        setTimeout(() => {
+            const btn = document.getElementById('toastActionBtn');
+            if (btn) {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    actionCallback();
+                    toast.classList.remove('show');
+                };
+            }
+        }, 0);
+    }
+    
+    toast.offsetHeight; // force reflow
+    toast.classList.add('show');
+    
+    if (window.toastTimeout) {
+        clearTimeout(window.toastTimeout);
+    }
+    window.toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3500);
+}
+
+window.disableFavoritesFilter = function() {
+    if (showFavoritesOnly) {
+        const favToggle = document.getElementById('favoritesToggle');
+        if (favToggle) {
+            favToggle.click();
+        }
+    }
+    const section = document.querySelector('.restaurant-list-section');
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+    }
+};
+
 window.toggleFavorite = function(id, event) {
     if (event) {
         event.stopPropagation();
     }
     
+    const restaurant = mockData.restaurants.find(r => r.id === id);
+    const rName = restaurant ? restaurant.name : '';
+    
     const index = favorites.indexOf(id);
+    let added = false;
     if (index > -1) {
         favorites.splice(index, 1);
     } else {
         favorites.push(id);
+        added = true;
     }
     saveFavoritesToStorage();
     
@@ -174,6 +233,22 @@ window.toggleFavorite = function(id, event) {
                 favBtn.querySelector('i').className = 'ph ph-heart';
             }
         }
+    }
+    
+    // Show premium toast
+    if (added) {
+        showToast(
+            `已將「${rName}」加入我的收藏！`, 
+            showFavoritesOnly ? null : '查看收藏', 
+            () => {
+                const favToggle = document.getElementById('favoritesToggle');
+                if (favToggle && !showFavoritesOnly) {
+                    favToggle.click();
+                }
+            }
+        );
+    } else {
+        showToast(`已將「${rName}」移出收藏。`);
     }
 }
 
@@ -450,7 +525,10 @@ function renderRestaurants() {
                         <i class="ph ph-heart"></i>
                     </div>
                     <h3>尚未收藏任何餐廳</h3>
-                    <p>點擊美食卡片上的愛心，或是進入詳情頁將喜愛的店家加入您的口袋名單吧！</p>
+                    <p style="margin-bottom: 1.5rem;">點擊美食卡片上的愛心，或是進入詳情頁將喜愛的店家加入您的口袋名單吧！</p>
+                    <button class="submit-btn" style="padding: 0.6rem 1.5rem; font-size: 0.9rem;" onclick="disableFavoritesFilter()">
+                        <i class="ph ph-sparkles"></i> 探索熱門美食
+                    </button>
                 </div>
             `;
         } else {
@@ -464,11 +542,11 @@ function renderRestaurants() {
         return;
     }
 
-    restaurantGrid.innerHTML = filtered.map(r => {
+    restaurantGrid.innerHTML = filtered.map((r, index) => {
         const isFav = favorites.includes(r.id);
         const favIconClass = isFav ? 'ph-fill ph-heart' : 'ph ph-heart';
         return `
-            <div class="restaurant-card" onclick="showDetailView(${r.id})">
+            <div class="restaurant-card" onclick="showDetailView(${r.id})" style="animation-delay: ${index * 0.05}s; opacity: 0; animation-fill-mode: forwards;">
                 <div class="card-image-wrapper">
                     <img src="${r.image}" alt="${r.name}" class="card-image">
                     <button class="favorite-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(${r.id}, event)" title="${isFav ? '取消收藏' : '加入收藏'}" aria-label="${isFav ? '取消收藏' : '加入收藏'}">

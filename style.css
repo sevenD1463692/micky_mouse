@@ -1166,3 +1166,88 @@ textarea:focus {
     50% { transform: translateY(-10px); }
 }
 
+/* ==========================================================================
+   Advanced UX Improvements
+   ========================================================================== */
+
+/* Card Entrance Staggered Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.restaurant-card {
+    animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    z-index: 9999;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    padding: 0.8rem 1.5rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-main);
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+}
+
+[data-theme="dark"] .toast-container {
+    background: rgba(30, 41, 59, 0.9);
+    color: #f8fafc;
+    border-color: #334155;
+}
+
+.toast-container.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.toast-icon {
+    color: #ef4444;
+    font-size: 1.25rem;
+}
+
+.toast-action {
+    color: var(--primary);
+    background: none;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding-left: 0.75rem;
+    border-left: 1px solid var(--border-color);
+    font-family: var(--font-family);
+    transition: var(--transition);
+}
+
+[data-theme="dark"] .toast-action {
+    border-left-color: #334155;
+}
+
+.toast-action:hover {
+    color: var(--primary-hover);
+    transform: scale(1.05);
+}
+
+
