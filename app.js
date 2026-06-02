@@ -2,6 +2,8 @@
 let currentCategory = 'all';
 let currentRestaurant = null;
 let searchQuery = '';
+let currentSort = 'default';
+let activeFilterTags = [];
 
 // DOM Elements
 const homeView = document.getElementById('homeView');
@@ -23,6 +25,18 @@ function init() {
 }
 
 // Storage Management
+function updateRestaurantRating(restaurant) {
+    if (!restaurant.reviews || restaurant.reviews.length === 0) {
+        restaurant.rating = 0.0;
+        return;
+    }
+    const sum = restaurant.reviews.reduce((acc, rev) => {
+        const ratingVal = rev.overallRating !== undefined ? rev.overallRating : (rev.rating || 5);
+        return acc + ratingVal;
+    }, 0);
+    restaurant.rating = parseFloat((sum / restaurant.reviews.length).toFixed(1));
+}
+
 function loadReviewsFromStorage() {
     const storedReviews = localStorage.getItem('fcuEatsReviews');
     const storedReports = localStorage.getItem('fcuEatsReports');
@@ -51,8 +65,9 @@ function loadReviewsFromStorage() {
         // 3. Filter out deleted reviews and those with > 10 reports
         r.reviews = r.reviews.filter(rev => !parsedDeleted.includes(rev.id) && rev.reports <= 10);
         
-        // 4. Update count
+        // 4. Update count and rating dynamically
         r.reviewCount = r.reviews.length;
+        updateRestaurantRating(r);
     });
 }
 
@@ -160,6 +175,31 @@ function setupEventListeners() {
     backBtn.addEventListener('click', () => {
         showHomeView();
     });
+
+    // Sort listener
+    const sortSelect = document.getElementById('sortSelect');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', (e) => {
+            currentSort = e.target.value;
+            renderRestaurants();
+        });
+    }
+
+    // Filter chips listener
+    const filterChips = document.querySelectorAll('.filter-chip-btn');
+    filterChips.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tag = btn.dataset.tag;
+            if (activeFilterTags.includes(tag)) {
+                activeFilterTags = activeFilterTags.filter(t => t !== tag);
+                btn.classList.remove('active');
+            } else {
+                activeFilterTags.push(tag);
+                btn.classList.add('active');
+            }
+            renderRestaurants();
+        });
+    });
 }
 
 // Rendering
@@ -191,14 +231,40 @@ function renderRestaurants() {
 
     // Filter by search
     if (searchQuery) {
-        filtered = filtered.filter(r => r.name.toLowerCase().includes(searchQuery) || r.tags.some(tag => tag.toLowerCase().includes(searchQuery)));
+        const trimmedQuery = searchQuery.trim().toLowerCase();
+        if (trimmedQuery) {
+            filtered = filtered.filter(r => r.name.toLowerCase().includes(trimmedQuery) || r.tags.some(tag => tag.toLowerCase().includes(trimmedQuery)));
+        }
+    }
+
+    // Filter by quick filter tags
+    if (activeFilterTags.length > 0) {
+        filtered = filtered.filter(r => activeFilterTags.every(tag => r.tags.includes(tag)));
+    }
+
+    // Sort
+    if (currentSort !== 'default') {
+        filtered = [...filtered]; // clone to avoid sorting in-place on core mockData
+        if (currentSort === 'rating-desc') {
+            filtered.sort((a, b) => b.rating - a.rating);
+        } else if (currentSort === 'reviews-desc') {
+            filtered.sort((a, b) => b.reviewCount - a.reviewCount);
+        } else if (currentSort === 'price-asc') {
+            filtered.sort((a, b) => a.price.length - b.price.length);
+        } else if (currentSort === 'price-desc') {
+            filtered.sort((a, b) => b.price.length - a.price.length);
+        }
     }
 
     if (filtered.length === 0) {
         restaurantGrid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
-                <i class="ph ph-mask-sad" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                <p>找不到符合的美食，換個關鍵字試試看吧！</p>
+            <div style="grid-column: 1/-1; text-align: center; padding: 3rem 1.5rem; color: var(--text-muted); background: var(--surface-color); border-radius: var(--radius-lg); border: 1px solid var(--border-color); animation: fadeIn 0.4s ease-out forwards;">
+                <i class="ph ph-mask-sad" style="font-size: 3.5rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                <p style="font-size: 1.1rem; font-weight: 500; color: var(--text-main); margin-bottom: 0.5rem;">找不到符合的美食</p>
+                <p style="font-size: 0.9rem; margin-bottom: 1.5rem;">試著換個關鍵字或調整篩選條件吧！</p>
+                <button onclick="clearAllFilters()" class="clear-filters-btn">
+                    <i class="ph ph-arrow-counter-clockwise"></i> 清除所有篩選
+                </button>
             </div>
         `;
         return;
@@ -226,6 +292,26 @@ function renderRestaurants() {
         </div>
     `).join('');
 }
+
+window.clearAllFilters = function() {
+    currentCategory = 'all';
+    searchQuery = '';
+    currentSort = 'default';
+    activeFilterTags = [];
+
+    // Reset UI inputs
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '';
+
+    const sortSelect = document.getElementById('sortSelect');
+    if (sortSelect) sortSelect.value = 'default';
+
+    const filterChips = document.querySelectorAll('.filter-chip-btn');
+    filterChips.forEach(btn => btn.classList.remove('active'));
+
+    renderCategories();
+    renderRestaurants();
+};
 
 function getCategoryName(id) {
     const cat = mockData.categories.find(c => c.id === id);
@@ -301,6 +387,12 @@ function renderDetailContent() {
                 <div class="detail-section">
                     <h3><i class="ph ph-pencil-simple"></i> 新增評價</h3>
                     <form class="review-form" id="reviewForm" onsubmit="submitReview(event)">
+                        <div class="rating-overall-group">
+                            <span>整體推薦度</span>
+                            <div class="stars-selector overall-stars" data-type="overall">
+                                ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
+                            </div>
+                        </div>
                         <div class="rating-input-group">
                             <div class="rating-input">
                                 <span>價格划算度</span>
@@ -375,7 +467,12 @@ function renderReviews(reviews) {
                 <div class="reviewer-info">
                     <div class="avatar">${rev.user.charAt(0)}</div>
                     <div>
-                        <div class="reviewer-name">${rev.user}</div>
+                        <div class="reviewer-name">
+                            ${rev.user}
+                            <span class="review-overall-badge">
+                                <i class="ph-fill ph-star"></i> ${(rev.overallRating || 5).toFixed(1)}
+                            </span>
+                        </div>
                         <div class="review-date">${rev.date}</div>
                     </div>
                 </div>
@@ -396,6 +493,7 @@ function renderReviews(reviews) {
 
 // Review Form Logic
 let currentFormRatings = {
+    overall: 0,
     price: 0,
     portion: 0,
     waitTime: 0,
@@ -403,7 +501,7 @@ let currentFormRatings = {
 };
 
 function setupReviewForm() {
-    currentFormRatings = { price: 0, portion: 0, waitTime: 0, sitability: 0 };
+    currentFormRatings = { overall: 0, price: 0, portion: 0, waitTime: 0, sitability: 0 };
     const selectors = document.querySelectorAll('.stars-selector');
     
     selectors.forEach(selector => {
@@ -446,20 +544,22 @@ window.submitReview = function(e) {
         user: '逢甲在地人(測試)',
         date: new Date().toISOString().split('T')[0],
         ratings: { ...currentFormRatings },
+        overallRating: currentFormRatings.overall,
         comment: comment,
         reports: 0
     };
 
     // Add to mock data
     currentRestaurant.reviews.unshift(newReview);
-    currentRestaurant.reviewCount += 1;
+    currentRestaurant.reviewCount = currentRestaurant.reviews.length;
+    updateRestaurantRating(currentRestaurant);
     
     // Save to localStorage
     saveReviewToStorage(currentRestaurant.id, newReview);
     
     // Re-render
     renderDetailContent();
-    renderRestaurants(); // update count on home screen
+    renderRestaurants(); // update count and rating on home screen
     
     // Reset form
     document.getElementById('reviewForm').reset();
@@ -495,13 +595,14 @@ window.reportReview = function(restaurantId, reviewId) {
             // Remove review from memory
             restaurant.reviews = restaurant.reviews.filter(rev => rev.id !== reviewId);
             restaurant.reviewCount = restaurant.reviews.length;
+            updateRestaurantRating(restaurant);
             
             // Delete review from storage completely
             deleteReviewFromStorage(restaurantId, reviewId);
             
             // Re-render
             renderDetailContent();
-            renderRestaurants(); // update count on home screen
+            renderRestaurants(); // update count and rating on home screen
         } else {
             alert(`已送出檢舉！目前累計檢舉次數：${review.reports}/11\n您今日剩餘可檢舉次數：${remaining} 次`);
             renderDetailContent();
