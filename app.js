@@ -2,6 +2,19 @@
 let currentCategory = 'all';
 let currentRestaurant = null;
 let searchQuery = '';
+let sortBy = 'recommended';
+
+const MOCK_LOCATIONS = {
+    'fcu-gate': { lat: 24.178657, lng: 120.646548, name: '逢甲大學正門 (模擬)' },
+    'fcu-ie': { lat: 24.179515, lng: 120.648210, name: '逢甲大學資電館 (模擬)' },
+    'night-market': { lat: 24.179836, lng: 120.645511, name: '逢甲夜市入口 (模擬)' },
+    'mcdonalds': { lat: 24.176465, lng: 120.645398, name: '逢甲麥當勞 (模擬)' }
+};
+
+let userLocation = {
+    ...MOCK_LOCATIONS['fcu-gate'],
+    isGPS: false
+};
 
 // DOM Elements
 const homeView = document.getElementById('homeView');
@@ -150,6 +163,98 @@ themeToggle.addEventListener('click', () => {
     }
 });
 
+// Distance and Location Utilities
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // meters
+    const phi1 = lat1 * Math.PI / 180;
+    const phi2 = lat2 * Math.PI / 180;
+    const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+    const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // in meters
+}
+
+function formatDistance(meters) {
+    if (isNaN(meters) || meters === Infinity) return '計算中';
+    if (meters < 1000) {
+        return `${Math.round(meters)}m`;
+    } else {
+        return `${(meters / 1000).toFixed(1)}km`;
+    }
+}
+
+function requestGPSLocation() {
+    const btn = document.getElementById('getLocationBtn');
+    const locationNameEl = document.getElementById('currentLocationName');
+    
+    if (!navigator.geolocation) {
+        alert('您的瀏覽器不支援 GPS 定位！');
+        return;
+    }
+    
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="ph ph-circle-notch animate-spin" style="animation: spin 1s linear infinite;"></i> 定位中...';
+    
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            userLocation = {
+                lat: lat,
+                lng: lng,
+                name: `GPS 定位 (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+                isGPS: true
+            };
+            
+            locationNameEl.textContent = userLocation.name;
+            
+            // Add and select GPS option in select list
+            const selectEl = document.getElementById('mockLocationSelect');
+            let gpsOpt = document.getElementById('gpsSelectOption');
+            if (!gpsOpt) {
+                gpsOpt = document.createElement('option');
+                gpsOpt.id = 'gpsSelectOption';
+                gpsOpt.value = 'gps';
+                gpsOpt.textContent = '📍 真實 GPS 定位';
+                selectEl.appendChild(gpsOpt);
+            }
+            selectEl.value = 'gps';
+            
+            renderRestaurants();
+            if (currentRestaurant) {
+                // If detail is active, update distance
+                const distText = document.getElementById('detailDistanceText');
+                if (distText) {
+                    const dist = calculateDistance(userLocation.lat, userLocation.lng, currentRestaurant.coordinates.lat, currentRestaurant.coordinates.lng);
+                    distText.textContent = `(距離目前位置 ${formatDistance(dist)})`;
+                }
+            }
+            
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        },
+        (error) => {
+            console.error(error);
+            let errorMsg = '定位失敗，請確認是否已授權定位權限！';
+            if (error.code === error.PERMISSION_DENIED) {
+                errorMsg = '您拒絕了定位授權，將繼續使用模擬位置。';
+            }
+            alert(errorMsg);
+            
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
+}
+
 // Event Listeners
 function setupEventListeners() {
     searchInput.addEventListener('input', (e) => {
@@ -159,6 +264,53 @@ function setupEventListeners() {
 
     backBtn.addEventListener('click', () => {
         showHomeView();
+    });
+
+    // Location select change listener
+    const mockSelect = document.getElementById('mockLocationSelect');
+    if (mockSelect) {
+        mockSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (MOCK_LOCATIONS[val]) {
+                userLocation = {
+                    ...MOCK_LOCATIONS[val],
+                    isGPS: false
+                };
+                document.getElementById('currentLocationName').textContent = userLocation.name;
+                
+                const gpsOpt = document.getElementById('gpsSelectOption');
+                if (gpsOpt) {
+                    gpsOpt.remove();
+                }
+                
+                renderRestaurants();
+                if (currentRestaurant) {
+                    const distText = document.getElementById('detailDistanceText');
+                    if (distText) {
+                        const dist = calculateDistance(userLocation.lat, userLocation.lng, currentRestaurant.coordinates.lat, currentRestaurant.coordinates.lng);
+                        distText.textContent = `(距離目前位置 ${formatDistance(dist)})`;
+                    }
+                }
+            }
+        });
+    }
+
+    // GPS button click listener
+    const gpsBtn = document.getElementById('getLocationBtn');
+    if (gpsBtn) {
+        gpsBtn.addEventListener('click', requestGPSLocation);
+    }
+
+    // Sort tabs click listener
+    const sortTabs = document.querySelectorAll('.sort-tab');
+    sortTabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            sortTabs.forEach(t => t.classList.remove('active'));
+            const currentTab = e.currentTarget;
+            currentTab.classList.add('active');
+            sortBy = currentTab.dataset.sort;
+            renderRestaurants();
+        });
     });
 }
 
@@ -182,7 +334,8 @@ function renderCategories() {
 }
 
 function renderRestaurants() {
-    let filtered = mockData.restaurants;
+    // Make a shallow copy of the restaurants array to avoid modifying mockData source sorting directly
+    let filtered = [...mockData.restaurants];
 
     // Filter by category
     if (currentCategory !== 'all') {
@@ -192,6 +345,23 @@ function renderRestaurants() {
     // Filter by search
     if (searchQuery) {
         filtered = filtered.filter(r => r.name.toLowerCase().includes(searchQuery) || r.tags.some(tag => tag.toLowerCase().includes(searchQuery)));
+    }
+
+    // Calculate distance to each restaurant
+    filtered.forEach(r => {
+        if (r.coordinates) {
+            r.distance = calculateDistance(userLocation.lat, userLocation.lng, r.coordinates.lat, r.coordinates.lng);
+        } else {
+            r.distance = Infinity;
+        }
+    });
+
+    // Sort by selected criteria
+    if (sortBy === 'distance') {
+        filtered.sort((a, b) => a.distance - b.distance);
+    } else {
+        // Sort by rating (descending) as recommendation default
+        filtered.sort((a, b) => b.rating - a.rating);
     }
 
     if (filtered.length === 0) {
@@ -206,7 +376,13 @@ function renderRestaurants() {
 
     restaurantGrid.innerHTML = filtered.map(r => `
         <div class="restaurant-card" onclick="showDetailView(${r.id})">
-            <img src="${r.image}" alt="${r.name}" class="card-image">
+            <div class="card-image-wrapper">
+                <img src="${r.image}" alt="${r.name}" class="card-image">
+                <div class="distance-badge">
+                    <i class="ph ph-map-pin"></i>
+                    <span>${formatDistance(r.distance)}</span>
+                </div>
+            </div>
             <div class="card-content">
                 <div class="card-header">
                     <h3 class="card-title">${r.name}</h3>
@@ -275,8 +451,8 @@ function renderDetailContent() {
                         <li>
                             <i class="ph ph-map-pin"></i>
                             <div class="info-content">
-                                <strong>地址</strong>
-                                <p>${r.address}</p>
+                                <strong>地址與距離</strong>
+                                <p>${r.address} <span id="detailDistanceText" style="color: var(--primary); font-weight: 600; margin-left: 0.5rem;">(距離目前位置 ${formatDistance(calculateDistance(userLocation.lat, userLocation.lng, r.coordinates.lat, r.coordinates.lng))})</span></p>
                             </div>
                         </li>
                         <li>
