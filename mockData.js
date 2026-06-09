@@ -19,6 +19,7 @@ const mockData = {
             reviewCount: 128,
             price: '$',
             address: '台中市西屯區福星路546號',
+            coordinates: { lat: 24.179611, lng: 120.645167 },
             hours: '15:00 - 01:00',
             description: '逢甲夜市必吃美食，獨特甜麵醬搭配軟Q蛋餅皮，讓人一口接一口。',
             reviews: [
@@ -47,6 +48,7 @@ const mockData = {
             reviewCount: 356,
             price: '$$$',
             address: '台中市西屯區福星路591號',
+            coordinates: { lat: 24.179944, lng: 120.645833 },
             hours: '11:30 - 02:00',
             description: '超人氣酸菜魚，份量十足，酸爽開胃，是同學聚餐的首選。',
             reviews: [
@@ -75,6 +77,7 @@ const mockData = {
             reviewCount: 89,
             price: '$',
             address: '台中市西屯區福星路427號',
+            coordinates: { lat: 24.176889, lng: 120.643361 },
             hours: '10:00 - 23:00',
             description: '經典熟成紅茶，逛夜市解膩的最佳搭配。',
             reviews: [
@@ -103,6 +106,7 @@ const mockData = {
             reviewCount: 210,
             price: '$$',
             address: '台中市西屯區福星路522號',
+            coordinates: { lat: 24.178917, lng: 120.644611 },
             hours: '11:30 - 23:00',
             description: 'CP值極高的個人麻辣鍋，白飯與那個麵吃到飽，學生最愛。',
             reviews: [

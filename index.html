@@ -26,15 +26,50 @@
                 <i class="ph ph-magnifying-glass"></i>
                 <input type="text" id="searchInput" placeholder="搜尋逢甲美食...">
             </div>
-            <button id="themeToggle" class="icon-btn" aria-label="切換深淺色模式">
-                <i class="ph ph-moon"></i>
-            </button>
+            <div class="header-controls">
+                <div class="user-status" id="userStatus">
+                    <button id="loginBtn" class="login-btn"><i class="ph ph-sign-in"></i> NID 登入</button>
+                </div>
+                <button id="fontDecrease" class="icon-btn font-control-btn" aria-label="減小字型">A-</button>
+                <button id="fontIncrease" class="icon-btn font-control-btn" aria-label="加大字型">A+</button>
+                <button id="themeToggle" class="icon-btn" aria-label="切換顯示模式">
+                    <i class="ph ph-moon"></i>
+                </button>
+            </div>
         </header>
 
         <!-- Main Content -->
         <main id="mainContent">
             <!-- Home View (Categories & List) -->
             <div id="homeView" class="view active">
+                <!-- Location Control Panel -->
+                <section class="location-panel">
+                    <div class="location-container">
+                        <div class="location-info">
+                            <div class="location-icon-wrapper">
+                                <i class="ph ph-map-pin"></i>
+                            </div>
+                            <div class="location-details">
+                                <span class="location-label">目前定位中心</span>
+                                <span id="currentLocationName" class="location-name">逢甲大學正門 (模擬)</span>
+                            </div>
+                        </div>
+                        <div class="location-actions">
+                            <button id="getLocationBtn" class="location-btn">
+                                <i class="ph ph-gps"></i> 使用 GPS 定位
+                            </button>
+                            <div class="select-wrapper">
+                                <select id="mockLocationSelect" class="location-select">
+                                    <option value="fcu-gate" selected>📍 模擬：逢甲大學正門</option>
+                                    <option value="fcu-ie">📍 模擬：逢甲大學資電館</option>
+                                    <option value="night-market">📍 模擬：逢甲夜市入口</option>
+                                    <option value="mcdonalds">📍 模擬：逢甲麥當勞</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <section class="categories">
                     <h2>分類探索</h2>
                     <div class="category-list" id="categoryList">
@@ -79,7 +114,14 @@
                 </section>
                 
                 <section class="restaurant-list-section">
-                    <h2>推薦美食</h2>
+                    <div class="section-header">
+                        <h2>推薦美食</h2>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="openOnlyToggle">
+                            <span class="slider"></span>
+                            <span class="toggle-label">只看營業中</span>
+                        </label>
+                    </div>
                     <div class="restaurant-grid" id="restaurantGrid">
                         <!-- Restaurant cards injected by JS -->
                     </div>
@@ -95,7 +137,100 @@
                     <!-- Detail injected by JS -->
                 </div>
             </div>
-        </main>
+    </div>
+
+    <!-- Floating Filter Button (Mobile only) -->
+    <button id="floatingFilterBtn" class="floating-btn" aria-label="篩選美食">
+        <i class="ph ph-sliders-horizontal"></i>
+    </button>
+
+    <!-- Bottom Navigation for Mobile -->
+    <nav class="bottom-nav">
+        <button class="bottom-nav-item active" id="navHome">
+            <i class="ph ph-house"></i>
+            <span>探索首頁</span>
+        </button>
+        <button class="bottom-nav-item" id="navFilterBtn">
+            <i class="ph ph-funnel"></i>
+            <span>單手篩選</span>
+        </button>
+        <button class="bottom-nav-item" id="navMyReviews">
+            <i class="ph ph-shield-check"></i>
+            <span>帳號狀態</span>
+        </button>
+    </nav>
+
+    <!-- Bottom Sheet Filter -->
+    <div id="bottomSheet" class="bottom-sheet hidden">
+        <div class="bottom-sheet-backdrop" id="bottomSheetBackdrop"></div>
+        <div class="bottom-sheet-content">
+            <div class="bottom-sheet-drag-handle"></div>
+            <div class="bottom-sheet-header">
+                <h3><i class="ph ph-sliders-horizontal"></i> 美食單手篩選</h3>
+                <button id="closeBottomSheet" class="close-btn">&times;</button>
+            </div>
+            <div class="bottom-sheet-body">
+                <!-- 篩選價格 -->
+                <div class="filter-group">
+                    <span class="filter-title">價格預算</span>
+                    <div class="filter-options" id="sheetPriceOptions">
+                        <button class="filter-pill active" data-price="all">全部</button>
+                        <button class="filter-pill" data-price="$">$ (划算)</button>
+                        <button class="filter-pill" data-price="$$">$$ (一般)</button>
+                        <button class="filter-pill" data-price="$$$">$$$ (餐廳)</button>
+                    </div>
+                </div>
+                <!-- 篩選評分 -->
+                <div class="filter-group">
+                    <span class="filter-title">排序依據</span>
+                    <div class="filter-options" id="sheetSortOptions">
+                        <button class="filter-pill active" data-sort="default">預設排序</button>
+                        <button class="filter-pill" data-sort="rating">評價最高</button>
+                        <button class="filter-pill" data-sort="reviews">評論最多</button>
+                    </div>
+                </div>
+                <button id="applyFiltersBtn" class="submit-btn" style="margin-top: 1rem; width: 100%;">
+                    確定篩選
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NID Login Modal -->
+    <div id="loginModal" class="modal hidden">
+        <div class="modal-backdrop" id="loginModalBackdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="ph ph-shield-check"></i> 逢甲大學 NID 登入</h2>
+                <button id="closeLoginBtn" class="close-btn">&times;</button>
+            </div>
+            <p class="modal-desc">本系統限制逢甲大學在校生評價，請使用您的 NID 帳號進行驗證登入。</p>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="nidUsername">NID 帳號 (學號)</label>
+                    <div class="input-wrapper">
+                        <i class="ph ph-user"></i>
+                        <input type="text" id="nidUsername" placeholder="例如: D1104278" required pattern="[dD][0-9]{7}" title="請輸入正確的逢甲學號格式 (例如 D1234567)">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="nidPassword">NID 密碼</label>
+                    <div class="input-wrapper">
+                        <i class="ph ph-lock"></i>
+                        <input type="password" id="nidPassword" placeholder="輸入您的 NID 密碼" required>
+                    </div>
+                </div>
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="anonymousDefault" checked style="width: auto; min-height: auto;">
+                        <span style="font-size: 0.9rem; color: var(--text-muted);">預設使用匿名發表評價 (保障學號不流出)</span>
+                    </label>
+                </div>
+                <button type="submit" class="submit-btn login-submit" style="width: 100%;">
+                    <i class="ph ph-sign-in"></i> 登入驗證
+                </button>
+            </form>
+        </div>
     </div>
 
     <!-- Scripts -->
