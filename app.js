@@ -2,21 +2,7 @@
 let currentCategory = 'all';
 let currentRestaurant = null;
 let searchQuery = '';
-let sortBy = 'recommended';
-let showFavoritesOnly = false;
-let favorites = [];
-
-const MOCK_LOCATIONS = {
-    'fcu-gate': { lat: 24.178657, lng: 120.646548, name: '逢甲大學正門 (模擬)' },
-    'fcu-ie': { lat: 24.179515, lng: 120.648210, name: '逢甲大學資電館 (模擬)' },
-    'night-market': { lat: 24.179836, lng: 120.645511, name: '逢甲夜市入口 (模擬)' },
-    'mcdonalds': { lat: 24.176465, lng: 120.645398, name: '逢甲麥當勞 (模擬)' }
-};
-
-let userLocation = {
-    ...MOCK_LOCATIONS['fcu-gate'],
-    isGPS: false
-};
+let showOpenOnly = false;
 
 // DOM Elements
 const homeView = document.getElementById('homeView');
@@ -36,6 +22,10 @@ function init() {
     renderRestaurants();
     setupEventListeners();
     initTheme();
+    
+    // Initial sync and start background timer for live status updates
+    updateLiveStatuses();
+    setInterval(updateLiveStatuses, 30000);
 }
 
 // Storage Management
@@ -500,21 +490,9 @@ function renderRestaurants() {
         filtered = filtered.filter(r => r.name.toLowerCase().includes(searchQuery) || r.tags.some(tag => tag.toLowerCase().includes(searchQuery)));
     }
 
-    // Calculate distance to each restaurant
-    filtered.forEach(r => {
-        if (r.coordinates) {
-            r.distance = calculateDistance(userLocation.lat, userLocation.lng, r.coordinates.lat, r.coordinates.lng);
-        } else {
-            r.distance = Infinity;
-        }
-    });
-
-    // Sort by selected criteria
-    if (sortBy === 'distance') {
-        filtered.sort((a, b) => a.distance - b.distance);
-    } else {
-        // Sort by rating (descending) as recommendation default
-        filtered.sort((a, b) => b.rating - a.rating);
+    // Filter by open only
+    if (showOpenOnly) {
+        filtered = filtered.filter(r => isRestaurantOpen(r.hours));
     }
 
     if (filtered.length === 0) {
@@ -542,21 +520,15 @@ function renderRestaurants() {
         return;
     }
 
-    restaurantGrid.innerHTML = filtered.map((r, index) => {
-        const isFav = favorites.includes(r.id);
-        const favIconClass = isFav ? 'ph-fill ph-heart' : 'ph ph-heart';
+    restaurantGrid.innerHTML = filtered.map(r => {
+        const isOpen = isRestaurantOpen(r.hours);
         return `
-            <div class="restaurant-card" onclick="showDetailView(${r.id})" style="animation-delay: ${index * 0.05}s; opacity: 0; animation-fill-mode: forwards;">
-                <div class="card-image-wrapper">
-                    <img src="${r.image}" alt="${r.name}" class="card-image">
-                    <button class="favorite-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(${r.id}, event)" title="${isFav ? '取消收藏' : '加入收藏'}" aria-label="${isFav ? '取消收藏' : '加入收藏'}">
-                        <i class="${favIconClass}"></i>
-                    </button>
-                    <div class="distance-badge">
-                        <i class="ph ph-map-pin"></i>
-                        <span>${formatDistance(r.distance)}</span>
-                    </div>
+            <div class="restaurant-card" onclick="showDetailView(${r.id})">
+                <div class="status-badge ${isOpen ? 'open' : 'closed'}" data-restaurant-id="${r.id}">
+                    <span class="status-dot"></span>
+                    <span class="status-text">${isOpen ? '營業中' : '已打烊'}</span>
                 </div>
+                <img src="${r.image}" alt="${r.name}" class="card-image">
                 <div class="card-content">
                     <div class="card-header">
                         <h3 class="card-title">${r.name}</h3>
@@ -583,6 +555,83 @@ function getCategoryName(id) {
     return cat ? cat.name : '';
 }
 
+function isRestaurantOpen(hoursStr) {
+    if (!hoursStr) return false;
+    const match = hoursStr.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+    if (!match) return false;
+    
+    const [_, startH, startM, endH, endM] = match;
+    const startMinutes = parseInt(startH, 10) * 60 + parseInt(startM, 10);
+    const endMinutes = parseInt(endH, 10) * 60 + parseInt(endM, 10);
+    
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    
+    if (startMinutes <= endMinutes) {
+        return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+    } else {
+        // Over midnight
+        return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+    }
+}
+
+function updateLiveStatuses() {
+    // 1. Update elements in home grid
+    const homeGridBadges = document.querySelectorAll('.restaurant-grid .status-badge');
+    homeGridBadges.forEach(badge => {
+        const id = parseInt(badge.dataset.restaurantId, 10);
+        const rest = mockData.restaurants.find(r => r.id === id);
+        if (rest) {
+            const isOpen = isRestaurantOpen(rest.hours);
+            const statusTextEl = badge.querySelector('.status-text');
+            
+            if (isOpen) {
+                if (!badge.classList.contains('open')) {
+                    badge.classList.remove('closed');
+                    badge.classList.add('open');
+                }
+                if (statusTextEl && statusTextEl.textContent !== '營業中') {
+                    statusTextEl.textContent = '營業中';
+                }
+            } else {
+                if (!badge.classList.contains('closed')) {
+                    badge.classList.remove('open');
+                    badge.classList.add('closed');
+                }
+                if (statusTextEl && statusTextEl.textContent !== '已打烊') {
+                    statusTextEl.textContent = '已打烊';
+                }
+            }
+        }
+    });
+
+    // 2. Update element in detail view
+    const detailBadge = document.getElementById('detailStatusBadge');
+    if (detailBadge && currentRestaurant) {
+        const isOpen = isRestaurantOpen(currentRestaurant.hours);
+        const statusTextEl = detailBadge.querySelector('.status-text');
+        
+        if (isOpen) {
+            if (!detailBadge.classList.contains('open')) {
+                detailBadge.classList.remove('closed');
+                detailBadge.classList.add('open');
+            }
+            if (statusTextEl && statusTextEl.textContent !== '營業中') {
+                statusTextEl.textContent = '營業中';
+            }
+        } else {
+            if (!detailBadge.classList.contains('closed')) {
+                detailBadge.classList.remove('open');
+                detailBadge.classList.add('closed');
+            }
+            if (statusTextEl && statusTextEl.textContent !== '已打烊') {
+                statusTextEl.textContent = '已打烊';
+            }
+        }
+    }
+}
+
+
 // Views Navigation
 function showHomeView() {
     detailView.classList.add('hidden');
@@ -603,8 +652,7 @@ function showDetailView(id) {
 
 function renderDetailContent() {
     const r = currentRestaurant;
-    const isFav = favorites.includes(r.id);
-    const favIconClass = isFav ? 'ph-fill ph-heart' : 'ph ph-heart';
+    const isOpen = isRestaurantOpen(r.hours);
     
     detailContent.innerHTML = `
         <div class="detail-header">
@@ -617,6 +665,10 @@ function renderDetailContent() {
                     </button>
                 </div>
                 <div class="detail-meta">
+                    <span class="detail-status-pill ${isOpen ? 'open' : 'closed'}" id="detailStatusBadge">
+                        <span class="status-dot"></span>
+                        <span class="status-text">${isOpen ? '營業中' : '已打烊'}</span>
+                    </span>
                     <span><i class="ph-fill ph-star"></i> ${r.rating} (${r.reviewCount} 則評價)</span>
                     <span>${r.price}</span>
                     <span>${getCategoryName(r.category)}</span>
