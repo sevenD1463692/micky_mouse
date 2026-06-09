@@ -241,6 +241,7 @@ main {
     cursor: pointer;
     transition: var(--transition);
     border: 1px solid var(--border-color);
+    position: relative;
 }
 
 .restaurant-card:hover {
@@ -662,6 +663,249 @@ textarea:focus {
     box-shadow: var(--shadow-md);
 }
 
+/* Location Panel Styles */
+.location-panel {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.location-panel:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.location-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.location-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.location-icon-wrapper {
+    background: var(--primary-light);
+    color: var(--primary);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(249, 115, 22, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+    }
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+
+.location-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.location-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.location-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.location-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.location-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: 1.5px solid var(--primary);
+    color: var(--primary);
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.location-btn:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.select-wrapper {
+    position: relative;
+}
+
+.location-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 0.6rem 2.2rem 0.6rem 1.2rem;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    outline: none;
+}
+
+.location-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.select-wrapper::after {
+    content: "▼";
+    font-size: 0.7rem;
+    position: absolute;
+    right: 0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--text-muted);
+}
+
+/* Sorting section header flex */
+.section-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.section-header-flex h2 {
+    margin-bottom: 0 !important;
+}
+
+.sort-tabs {
+    display: flex;
+    background: var(--border-color);
+    padding: 4px;
+    border-radius: 9999px;
+}
+
+[data-theme="dark"] .sort-tabs {
+    background: #334155;
+}
+
+.sort-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1.2rem;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-family);
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.sort-tab i {
+    font-size: 1rem;
+}
+
+.sort-tab.active {
+    background: var(--surface-color);
+    color: var(--primary);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Card image wrapper & distance badge */
+.card-image-wrapper {
+    position: relative;
+    overflow: hidden;
+    height: 200px;
+}
+
+.card-image-wrapper .card-image {
+    height: 100%;
+}
+
+.distance-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    color: white;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    z-index: 10;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: var(--transition);
+}
+
+.restaurant-card:hover .distance-badge {
+    background: var(--primary);
+    transform: scale(1.05);
+}
+
 /* Responsive */
 @media (max-width: 640px) {
     .header {
@@ -681,6 +925,48 @@ textarea:focus {
     .detail-title {
         font-size: 2rem;
     }
+
+    .location-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .location-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .location-btn, .location-select, .select-wrapper {
+        width: 100%;
+    }
+
+    .section-header-flex {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .sort-tabs {
+        width: 100%;
+    }
+
+    .sort-tab {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+/* ==========================================================================
+   Favorites Feature Styles
+   ========================================================================== */
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+#favoritesToggle {
+    position: relative;
 }
 
 /* ==========================================================================
