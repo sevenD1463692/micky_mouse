@@ -17,6 +17,7 @@ const themeToggle = document.getElementById('themeToggle');
 // Initialize
 function init() {
     loadReviewsFromStorage();
+    loadFavoritesFromStorage();
     renderCategories();
     renderRestaurants();
     setupEventListeners();
@@ -30,16 +31,35 @@ function init() {
 // Storage Management
 function loadReviewsFromStorage() {
     const storedReviews = localStorage.getItem('fcuEatsReviews');
-    if (storedReviews) {
-        const parsed = JSON.parse(storedReviews);
-        mockData.restaurants.forEach(r => {
-            if (parsed[r.id]) {
-                // Prepend stored reviews
-                r.reviews = [...parsed[r.id], ...r.reviews];
-                r.reviewCount = r.reviews.length;
+    const storedReports = localStorage.getItem('fcuEatsReports');
+    const storedDeleted = localStorage.getItem('fcuEatsDeletedReviews');
+    
+    const parsedReviews = storedReviews ? JSON.parse(storedReviews) : {};
+    const parsedReports = storedReports ? JSON.parse(storedReports) : {};
+    const parsedDeleted = storedDeleted ? JSON.parse(storedDeleted) : [];
+
+    mockData.restaurants.forEach(r => {
+        // 1. Merge user reviews from storage, preventing duplicates
+        if (parsedReviews[r.id]) {
+            const userReviews = parsedReviews[r.id].filter(ur => !r.reviews.some(ex => ex.id === ur.id));
+            r.reviews = [...userReviews, ...r.reviews];
+        }
+
+        // 2. Set report counts from storage
+        r.reviews.forEach(rev => {
+            if (parsedReports[rev.id] !== undefined) {
+                rev.reports = parsedReports[rev.id];
+            } else if (rev.reports === undefined) {
+                rev.reports = 0;
             }
         });
-    }
+
+        // 3. Filter out deleted reviews and those with > 10 reports
+        r.reviews = r.reviews.filter(rev => !parsedDeleted.includes(rev.id) && rev.reports <= 10);
+        
+        // 4. Update count
+        r.reviewCount = r.reviews.length;
+    });
 }
 
 function saveReviewToStorage(restaurantId, review) {
@@ -50,6 +70,200 @@ function saveReviewToStorage(restaurantId, review) {
     }
     parsed[restaurantId].unshift(review);
     localStorage.setItem('fcuEatsReviews', JSON.stringify(parsed));
+}
+
+function saveReportsToStorage(restaurantId, reviewId, reports) {
+    const storedReports = localStorage.getItem('fcuEatsReports');
+    const parsedReports = storedReports ? JSON.parse(storedReports) : {};
+    parsedReports[reviewId] = reports;
+    localStorage.setItem('fcuEatsReports', JSON.stringify(parsedReports));
+    
+    // Update inside stored user reviews if present
+    const storedReviews = localStorage.getItem('fcuEatsReviews');
+    if (storedReviews) {
+        const parsedReviews = JSON.parse(storedReviews);
+        if (parsedReviews[restaurantId]) {
+            const rev = parsedReviews[restaurantId].find(r => r.id === reviewId);
+            if (rev) {
+                rev.reports = reports;
+                localStorage.setItem('fcuEatsReviews', JSON.stringify(parsedReviews));
+            }
+        }
+    }
+}
+
+function deleteReviewFromStorage(restaurantId, reviewId) {
+    // 1. Add to deleted reviews list
+    const storedDeleted = localStorage.getItem('fcuEatsDeletedReviews');
+    const parsedDeleted = storedDeleted ? JSON.parse(storedDeleted) : [];
+    if (!parsedDeleted.includes(reviewId)) {
+        parsedDeleted.push(reviewId);
+        localStorage.setItem('fcuEatsDeletedReviews', JSON.stringify(parsedDeleted));
+    }
+    
+    // 2. Remove from user reviews storage if it was a user review
+    const storedReviews = localStorage.getItem('fcuEatsReviews');
+    if (storedReviews) {
+        const parsedReviews = JSON.parse(storedReviews);
+        if (parsedReviews[restaurantId]) {
+            parsedReviews[restaurantId] = parsedReviews[restaurantId].filter(r => r.id !== reviewId);
+            localStorage.setItem('fcuEatsReviews', JSON.stringify(parsedReviews));
+        }
+    }
+}
+
+function loadFavoritesFromStorage() {
+    const stored = localStorage.getItem('fcuEatsFavorites');
+    favorites = stored ? JSON.parse(stored) : [];
+    updateFavoritesBadge();
+}
+
+function saveFavoritesToStorage() {
+    localStorage.setItem('fcuEatsFavorites', JSON.stringify(favorites));
+    updateFavoritesBadge();
+}
+
+function updateFavoritesBadge() {
+    const badge = document.getElementById('favoritesBadge');
+    if (badge) {
+        badge.textContent = favorites.length;
+        if (favorites.length > 0) {
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+}
+
+function showToast(message, actionText, actionCallback) {
+    let toast = document.getElementById('appToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'appToast';
+        toast.className = 'toast-container';
+        document.body.appendChild(toast);
+    }
+    
+    toast.innerHTML = `
+        <i class="ph-fill ph-heart toast-icon"></i>
+        <span style="flex-grow: 1;">${message}</span>
+        ${actionText ? `<button class="toast-action" id="toastActionBtn">${actionText}</button>` : ''}
+    `;
+    
+    toast.classList.remove('show');
+    
+    if (actionText && actionCallback) {
+        setTimeout(() => {
+            const btn = document.getElementById('toastActionBtn');
+            if (btn) {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    actionCallback();
+                    toast.classList.remove('show');
+                };
+            }
+        }, 0);
+    }
+    
+    toast.offsetHeight; // force reflow
+    toast.classList.add('show');
+    
+    if (window.toastTimeout) {
+        clearTimeout(window.toastTimeout);
+    }
+    window.toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3500);
+}
+
+window.disableFavoritesFilter = function() {
+    if (showFavoritesOnly) {
+        const favToggle = document.getElementById('favoritesToggle');
+        if (favToggle) {
+            favToggle.click();
+        }
+    }
+    const section = document.querySelector('.restaurant-list-section');
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+    }
+};
+
+window.toggleFavorite = function(id, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    const restaurant = mockData.restaurants.find(r => r.id === id);
+    const rName = restaurant ? restaurant.name : '';
+    
+    const index = favorites.indexOf(id);
+    let added = false;
+    if (index > -1) {
+        favorites.splice(index, 1);
+    } else {
+        favorites.push(id);
+        added = true;
+    }
+    saveFavoritesToStorage();
+    
+    // Re-render restaurant grid to update card hearts
+    renderRestaurants();
+    
+    // Update detail view heart if open
+    if (currentRestaurant && currentRestaurant.id === id) {
+        const favBtn = document.getElementById('detailFavoriteBtn');
+        if (favBtn) {
+            const isFav = favorites.includes(id);
+            if (isFav) {
+                favBtn.classList.add('active');
+                favBtn.querySelector('i').className = 'ph-fill ph-heart';
+            } else {
+                favBtn.classList.remove('active');
+                favBtn.querySelector('i').className = 'ph ph-heart';
+            }
+        }
+    }
+    
+    // Show premium toast
+    if (added) {
+        showToast(
+            `已將「${rName}」加入我的收藏！`, 
+            showFavoritesOnly ? null : '查看收藏', 
+            () => {
+                const favToggle = document.getElementById('favoritesToggle');
+                if (favToggle && !showFavoritesOnly) {
+                    favToggle.click();
+                }
+            }
+        );
+    } else {
+        showToast(`已將「${rName}」移出收藏。`);
+    }
+}
+
+function getUserDailyReportCount() {
+    const today = new Date().toISOString().split('T')[0];
+    const stored = localStorage.getItem('fcuEatsUserDailyReports');
+    if (!stored) return { date: today, count: 0 };
+    
+    try {
+        const parsed = JSON.parse(stored);
+        if (parsed.date !== today) {
+            return { date: today, count: 0 };
+        }
+        return parsed;
+    } catch (e) {
+        return { date: today, count: 0 };
+    }
+}
+
+function incrementUserDailyReportCount() {
+    const today = new Date().toISOString().split('T')[0];
+    const dailyInfo = getUserDailyReportCount();
+    dailyInfo.count += 1;
+    dailyInfo.date = today;
+    localStorage.setItem('fcuEatsUserDailyReports', JSON.stringify(dailyInfo));
 }
 
 // Theme Management
@@ -72,6 +286,98 @@ themeToggle.addEventListener('click', () => {
     }
 });
 
+// Distance and Location Utilities
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // meters
+    const phi1 = lat1 * Math.PI / 180;
+    const phi2 = lat2 * Math.PI / 180;
+    const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+    const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // in meters
+}
+
+function formatDistance(meters) {
+    if (isNaN(meters) || meters === Infinity) return '計算中';
+    if (meters < 1000) {
+        return `${Math.round(meters)}m`;
+    } else {
+        return `${(meters / 1000).toFixed(1)}km`;
+    }
+}
+
+function requestGPSLocation() {
+    const btn = document.getElementById('getLocationBtn');
+    const locationNameEl = document.getElementById('currentLocationName');
+    
+    if (!navigator.geolocation) {
+        alert('您的瀏覽器不支援 GPS 定位！');
+        return;
+    }
+    
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="ph ph-circle-notch animate-spin" style="animation: spin 1s linear infinite;"></i> 定位中...';
+    
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            userLocation = {
+                lat: lat,
+                lng: lng,
+                name: `GPS 定位 (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+                isGPS: true
+            };
+            
+            locationNameEl.textContent = userLocation.name;
+            
+            // Add and select GPS option in select list
+            const selectEl = document.getElementById('mockLocationSelect');
+            let gpsOpt = document.getElementById('gpsSelectOption');
+            if (!gpsOpt) {
+                gpsOpt = document.createElement('option');
+                gpsOpt.id = 'gpsSelectOption';
+                gpsOpt.value = 'gps';
+                gpsOpt.textContent = '📍 真實 GPS 定位';
+                selectEl.appendChild(gpsOpt);
+            }
+            selectEl.value = 'gps';
+            
+            renderRestaurants();
+            if (currentRestaurant) {
+                // If detail is active, update distance
+                const distText = document.getElementById('detailDistanceText');
+                if (distText) {
+                    const dist = calculateDistance(userLocation.lat, userLocation.lng, currentRestaurant.coordinates.lat, currentRestaurant.coordinates.lng);
+                    distText.textContent = `(距離目前位置 ${formatDistance(dist)})`;
+                }
+            }
+            
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        },
+        (error) => {
+            console.error(error);
+            let errorMsg = '定位失敗，請確認是否已授權定位權限！';
+            if (error.code === error.PERMISSION_DENIED) {
+                errorMsg = '您拒絕了定位授權，將繼續使用模擬位置。';
+            }
+            alert(errorMsg);
+            
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
+}
+
 // Event Listeners
 function setupEventListeners() {
     searchInput.addEventListener('input', (e) => {
@@ -83,13 +389,67 @@ function setupEventListeners() {
         showHomeView();
     });
 
-    const openOnlyToggle = document.getElementById('openOnlyToggle');
-    if (openOnlyToggle) {
-        openOnlyToggle.addEventListener('change', (e) => {
-            showOpenOnly = e.target.checked;
+    const favToggle = document.getElementById('favoritesToggle');
+    if (favToggle) {
+        favToggle.addEventListener('click', () => {
+            showFavoritesOnly = !showFavoritesOnly;
+            if (showFavoritesOnly) {
+                favToggle.classList.add('active');
+                favToggle.querySelector('i').className = 'ph-fill ph-heart';
+            } else {
+                favToggle.classList.remove('active');
+                favToggle.querySelector('i').className = 'ph ph-heart';
+            }
             renderRestaurants();
         });
     }
+
+    // Location select change listener
+    const mockSelect = document.getElementById('mockLocationSelect');
+    if (mockSelect) {
+        mockSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (MOCK_LOCATIONS[val]) {
+                userLocation = {
+                    ...MOCK_LOCATIONS[val],
+                    isGPS: false
+                };
+                document.getElementById('currentLocationName').textContent = userLocation.name;
+                
+                const gpsOpt = document.getElementById('gpsSelectOption');
+                if (gpsOpt) {
+                    gpsOpt.remove();
+                }
+                
+                renderRestaurants();
+                if (currentRestaurant) {
+                    const distText = document.getElementById('detailDistanceText');
+                    if (distText) {
+                        const dist = calculateDistance(userLocation.lat, userLocation.lng, currentRestaurant.coordinates.lat, currentRestaurant.coordinates.lng);
+                        distText.textContent = `(距離目前位置 ${formatDistance(dist)})`;
+                    }
+                }
+            }
+        });
+    }
+
+    // GPS button click listener
+    const gpsBtn = document.getElementById('getLocationBtn');
+    if (gpsBtn) {
+        gpsBtn.addEventListener('click', requestGPSLocation);
+    }
+
+    // Sort tabs click listener
+    const sortTabs = document.querySelectorAll('.sort-tab');
+    sortTabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            sortTabs.forEach(t => t.classList.remove('active'));
+            const currentTab = e.currentTarget;
+            currentTab.classList.add('active');
+            sortBy = currentTab.dataset.sort;
+            renderRestaurants();
+        });
+    });
 }
 
 // Rendering
@@ -112,7 +472,13 @@ function renderCategories() {
 }
 
 function renderRestaurants() {
-    let filtered = mockData.restaurants;
+    // Make a shallow copy of the restaurants array to avoid modifying mockData source sorting directly
+    let filtered = [...mockData.restaurants];
+
+    // Filter by favorites if enabled
+    if (showFavoritesOnly) {
+        filtered = filtered.filter(r => favorites.includes(r.id));
+    }
 
     // Filter by category
     if (currentCategory !== 'all') {
@@ -130,12 +496,27 @@ function renderRestaurants() {
     }
 
     if (filtered.length === 0) {
-        restaurantGrid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
-                <i class="ph ph-mask-sad" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                <p>找不到符合的美食，換個關鍵字試試看吧！</p>
-            </div>
-        `;
+        if (showFavoritesOnly) {
+            restaurantGrid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="ph ph-heart"></i>
+                    </div>
+                    <h3>尚未收藏任何餐廳</h3>
+                    <p style="margin-bottom: 1.5rem;">點擊美食卡片上的愛心，或是進入詳情頁將喜愛的店家加入您的口袋名單吧！</p>
+                    <button class="submit-btn" style="padding: 0.6rem 1.5rem; font-size: 0.9rem;" onclick="disableFavoritesFilter()">
+                        <i class="ph ph-sparkles"></i> 探索熱門美食
+                    </button>
+                </div>
+            `;
+        } else {
+            restaurantGrid.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
+                    <i class="ph ph-mask-sad" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                    <p>找不到符合的美食，換個關鍵字試試看吧！</p>
+                </div>
+            `;
+        }
         return;
     }
 
@@ -277,7 +658,12 @@ function renderDetailContent() {
         <div class="detail-header">
             <img src="${r.image}" alt="${r.name}">
             <div class="detail-overlay">
-                <h2 class="detail-title">${r.name}</h2>
+                <div class="detail-title-row">
+                    <h2 class="detail-title">${r.name}</h2>
+                    <button id="detailFavoriteBtn" class="detail-favorite-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(${r.id}, event)" title="${isFav ? '取消收藏' : '加入收藏'}" aria-label="${isFav ? '取消收藏' : '加入收藏'}">
+                        <i class="${favIconClass}"></i>
+                    </button>
+                </div>
                 <div class="detail-meta">
                     <span class="detail-status-pill ${isOpen ? 'open' : 'closed'}" id="detailStatusBadge">
                         <span class="status-dot"></span>
@@ -299,8 +685,8 @@ function renderDetailContent() {
                         <li>
                             <i class="ph ph-map-pin"></i>
                             <div class="info-content">
-                                <strong>地址</strong>
-                                <p>${r.address}</p>
+                                <strong>地址與距離</strong>
+                                <p>${r.address} <span id="detailDistanceText" style="color: var(--primary); font-weight: 600; margin-left: 0.5rem;">(距離目前位置 ${formatDistance(calculateDistance(userLocation.lat, userLocation.lng, r.coordinates.lat, r.coordinates.lng))})</span></p>
                             </div>
                         </li>
                         <li>
@@ -403,6 +789,9 @@ function renderReviews(reviews) {
                         <div class="review-date">${rev.date}</div>
                     </div>
                 </div>
+                <button class="report-btn" onclick="reportReview(${currentRestaurant.id}, ${rev.id})" title="檢舉此評論">
+                    <i class="ph ph-flag"></i> 檢舉 <span class="report-count">${rev.reports || 0}</span>
+                </button>
             </div>
             <div class="review-ratings">
                 <div class="rating-pill">💰 價格 <i class="ph-fill ph-star"></i> ${rev.ratings.price}</div>
@@ -467,7 +856,8 @@ window.submitReview = function(e) {
         user: '逢甲在地人(測試)',
         date: new Date().toISOString().split('T')[0],
         ratings: { ...currentFormRatings },
-        comment: comment
+        comment: comment,
+        reports: 0
     };
 
     // Add to mock data
@@ -484,6 +874,49 @@ window.submitReview = function(e) {
     // Reset form
     document.getElementById('reviewForm').reset();
     setupReviewForm(); // Reset stars UI
+};
+
+window.reportReview = function(restaurantId, reviewId) {
+    const restaurant = mockData.restaurants.find(r => r.id === restaurantId);
+    if (!restaurant) return;
+    
+    const review = restaurant.reviews.find(rev => rev.id === reviewId);
+    if (!review) return;
+
+    // ── 每日檢舉上限：單日最多 5 次 ──
+    const dailyInfo = getUserDailyReportCount();
+    if (dailyInfo.count >= 5) {
+        alert('您今日的檢舉次數已達上限（每人每日最多 5 次），請明日再試！');
+        return;
+    }
+    
+    if (confirm('您確定要檢舉這則評論嗎？')) {
+        // 扣除使用者今日剩餘檢舉配額
+        incrementUserDailyReportCount();
+        const remaining = 4 - dailyInfo.count; // dailyInfo.count is before increment
+
+        review.reports = (review.reports || 0) + 1;
+        
+        // Save to storage
+        saveReportsToStorage(restaurantId, reviewId, review.reports);
+        
+        if (review.reports > 10) {
+            alert('此評論因收到超過 10 次檢舉，已被系統自動移除！');
+            // Remove review from memory
+            restaurant.reviews = restaurant.reviews.filter(rev => rev.id !== reviewId);
+            restaurant.reviewCount = restaurant.reviews.length;
+            
+            // Delete review from storage completely
+            deleteReviewFromStorage(restaurantId, reviewId);
+            
+            // Re-render
+            renderDetailContent();
+            renderRestaurants(); // update count on home screen
+        } else {
+            alert(`已送出檢舉！目前累計檢舉次數：${review.reports}/11\n您今日剩餘可檢舉次數：${remaining} 次`);
+            renderDetailContent();
+        }
+    }
 };
 
 // Boot
