@@ -2,7 +2,8 @@
 let currentCategory = 'all';
 let currentRestaurant = null;
 let searchQuery = '';
-let selectedBudgets = ['$', '$$', '$$$'];
+let currentSort = 'default';
+let activeFilterTags = [];
 
 // DOM Elements
 const homeView = document.getElementById('homeView');
@@ -67,6 +68,18 @@ function registerServiceWorker() {
 }
 
 // Storage Management
+function updateRestaurantRating(restaurant) {
+    if (!restaurant.reviews || restaurant.reviews.length === 0) {
+        restaurant.rating = 0.0;
+        return;
+    }
+    const sum = restaurant.reviews.reduce((acc, rev) => {
+        const ratingVal = rev.overallRating !== undefined ? rev.overallRating : (rev.rating || 5);
+        return acc + ratingVal;
+    }, 0);
+    restaurant.rating = parseFloat((sum / restaurant.reviews.length).toFixed(1));
+}
+
 function loadReviewsFromStorage() {
     const storedReviews = localStorage.getItem('fcuEatsReviews');
     const storedReports = localStorage.getItem('fcuEatsReports');
@@ -95,8 +108,9 @@ function loadReviewsFromStorage() {
         // 3. Filter out deleted reviews and those with > 10 reports
         r.reviews = r.reviews.filter(rev => !parsedDeleted.includes(rev.id) && rev.reports <= 10);
         
-        // 4. Update count
+        // 4. Update count and rating dynamically
         r.reviewCount = r.reviews.length;
+        updateRestaurantRating(r);
     });
 }
 
@@ -178,6 +192,11 @@ function setupEventListeners() {
         showHomeView();
     });
 
+    // Sort listener
+    const sortSelect = document.getElementById('sortSelect');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', (e) => {
+            currentSort = e.target.value;
     const favToggle = document.getElementById('favoritesToggle');
     if (favToggle) {
         favToggle.addEventListener('click', () => {
@@ -193,49 +212,18 @@ function setupEventListeners() {
         });
     }
 
-    // Location select change listener
-    const mockSelect = document.getElementById('mockLocationSelect');
-    if (mockSelect) {
-        mockSelect.addEventListener('change', (e) => {
-            const val = e.target.value;
-            if (MOCK_LOCATIONS[val]) {
-                userLocation = {
-                    ...MOCK_LOCATIONS[val],
-                    isGPS: false
-                };
-                document.getElementById('currentLocationName').textContent = userLocation.name;
-                
-                const gpsOpt = document.getElementById('gpsSelectOption');
-                if (gpsOpt) {
-                    gpsOpt.remove();
-                }
-                
-                renderRestaurants();
-                if (currentRestaurant) {
-                    const distText = document.getElementById('detailDistanceText');
-                    if (distText) {
-                        const dist = calculateDistance(userLocation.lat, userLocation.lng, currentRestaurant.coordinates.lat, currentRestaurant.coordinates.lng);
-                        distText.textContent = `(距離目前位置 ${formatDistance(dist)})`;
-                    }
-                }
+    // Filter chips listener
+    const filterChips = document.querySelectorAll('.filter-chip-btn');
+    filterChips.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tag = btn.dataset.tag;
+            if (activeFilterTags.includes(tag)) {
+                activeFilterTags = activeFilterTags.filter(t => t !== tag);
+                btn.classList.remove('active');
+            } else {
+                activeFilterTags.push(tag);
+                btn.classList.add('active');
             }
-        });
-    }
-
-    // GPS button click listener
-    const gpsBtn = document.getElementById('getLocationBtn');
-    if (gpsBtn) {
-        gpsBtn.addEventListener('click', requestGPSLocation);
-    }
-
-    // Sort tabs click listener
-    const sortTabs = document.querySelectorAll('.sort-tab');
-    sortTabs.forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            sortTabs.forEach(t => t.classList.remove('active'));
-            const currentTab = e.currentTarget;
-            currentTab.classList.add('active');
-            sortBy = currentTab.dataset.sort;
             renderRestaurants();
         });
     });
@@ -293,7 +281,29 @@ function renderRestaurants() {
 
     // Filter by search
     if (searchQuery) {
-        filtered = filtered.filter(r => r.name.toLowerCase().includes(searchQuery) || r.tags.some(tag => tag.toLowerCase().includes(searchQuery)));
+        const trimmedQuery = searchQuery.trim().toLowerCase();
+        if (trimmedQuery) {
+            filtered = filtered.filter(r => r.name.toLowerCase().includes(trimmedQuery) || r.tags.some(tag => tag.toLowerCase().includes(trimmedQuery)));
+        }
+    }
+
+    // Filter by quick filter tags
+    if (activeFilterTags.length > 0) {
+        filtered = filtered.filter(r => activeFilterTags.every(tag => r.tags.includes(tag)));
+    }
+
+    // Sort
+    if (currentSort !== 'default') {
+        filtered = [...filtered]; // clone to avoid sorting in-place on core mockData
+        if (currentSort === 'rating-desc') {
+            filtered.sort((a, b) => b.rating - a.rating);
+        } else if (currentSort === 'reviews-desc') {
+            filtered.sort((a, b) => b.reviewCount - a.reviewCount);
+        } else if (currentSort === 'price-asc') {
+            filtered.sort((a, b) => a.price.length - b.price.length);
+        } else if (currentSort === 'price-desc') {
+            filtered.sort((a, b) => b.price.length - a.price.length);
+        }
     }
 
     // Prioritize restaurants matching selected budgets
@@ -414,6 +424,26 @@ function renderRestaurants() {
         `;
     }).join('');
 }
+
+window.clearAllFilters = function() {
+    currentCategory = 'all';
+    searchQuery = '';
+    currentSort = 'default';
+    activeFilterTags = [];
+
+    // Reset UI inputs
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '';
+
+    const sortSelect = document.getElementById('sortSelect');
+    if (sortSelect) sortSelect.value = 'default';
+
+    const filterChips = document.querySelectorAll('.filter-chip-btn');
+    filterChips.forEach(btn => btn.classList.remove('active'));
+
+    renderCategories();
+    renderRestaurants();
+};
 
 function getCategoryName(id) {
     const cat = mockData.categories.find(c => c.id === id);
@@ -578,6 +608,18 @@ function renderDetailContent() {
 
                 <div class="detail-section">
                     <h3><i class="ph ph-pencil-simple"></i> 新增評價</h3>
+                    <form class="review-form" id="reviewForm" onsubmit="submitReview(event)">
+                        <div class="rating-overall-group">
+                            <span>整體推薦度</span>
+                            <div class="stars-selector overall-stars" data-type="overall">
+                                ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
+                            </div>
+                        </div>
+                        <div class="rating-input-group">
+                            <div class="rating-input">
+                                <span>價格划算度</span>
+                                <div class="stars-selector" data-type="price">
+                                    ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
                     ${userAccount ? `
                         <form class="review-form" id="reviewForm" onsubmit="submitReview(event)">
                             <div class="rating-input-group">
@@ -686,7 +728,12 @@ function renderReviews(reviews) {
                 <div class="reviewer-info">
                     <div class="avatar">${rev.user.charAt(0)}</div>
                     <div>
-                        <div class="reviewer-name">${rev.user}</div>
+                        <div class="reviewer-name">
+                            ${rev.user}
+                            <span class="review-overall-badge">
+                                <i class="ph-fill ph-star"></i> ${(rev.overallRating || 5).toFixed(1)}
+                            </span>
+                        </div>
                         <div class="review-date">${rev.date}</div>
                     </div>
                 </div>
@@ -707,6 +754,7 @@ function renderReviews(reviews) {
 
 // Review Form Logic
 let currentFormRatings = {
+    overall: 0,
     price: 0,
     portion: 0,
     waitTime: 0,
@@ -714,9 +762,7 @@ let currentFormRatings = {
 };
 
 function setupReviewForm() {
-    if (!userAccount) return;
-    
-    currentFormRatings = { price: 0, portion: 0, waitTime: 0, sitability: 0 };
+    currentFormRatings = { overall: 0, price: 0, portion: 0, waitTime: 0, sitability: 0 };
     const selectors = document.querySelectorAll('.stars-selector');
     
     selectors.forEach(selector => {
@@ -830,11 +876,14 @@ window.submitReview = function(e) {
         user: displayName,
         date: new Date().toISOString().split('T')[0],
         ratings: { ...currentFormRatings },
-        comment: escapedComment
+        overallRating: currentFormRatings.overall,
+        comment: comment,
+        reports: 0
     };
     
     currentRestaurant.reviews.unshift(newReview);
-    currentRestaurant.reviewCount += 1;
+    currentRestaurant.reviewCount = currentRestaurant.reviews.length;
+    updateRestaurantRating(currentRestaurant);
     
     saveReviewToStorage(currentRestaurant.id, newReview);
     lastReviewTime[rateLimitKey] = now;
@@ -901,6 +950,26 @@ fontDecrease.addEventListener('click', () => {
     }
 });
 
+        review.reports = (review.reports || 0) + 1;
+        
+        // Save to storage
+        saveReportsToStorage(restaurantId, reviewId, review.reports);
+        
+        if (review.reports > 10) {
+            alert('此評論因收到超過 10 次檢舉，已被系統自動移除！');
+            // Remove review from memory
+            restaurant.reviews = restaurant.reviews.filter(rev => rev.id !== reviewId);
+            restaurant.reviewCount = restaurant.reviews.length;
+            updateRestaurantRating(restaurant);
+            
+            // Delete review from storage completely
+            deleteReviewFromStorage(restaurantId, reviewId);
+            
+            // Re-render
+            renderDetailContent();
+            renderRestaurants(); // update count and rating on home screen
+        } else {
+            alert(`已送出檢舉！目前累計檢舉次數：${review.reports}/11\n您今日剩餘可檢舉次數：${remaining} 次`);
 fontIncrease.addEventListener('click', () => {
     if (currentFontIndex < FONT_CLASSES.length - 1) {
         currentFontIndex++;

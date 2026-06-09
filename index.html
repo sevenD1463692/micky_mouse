@@ -77,6 +77,42 @@
                     </div>
                 </section>
                 
+                <!-- Filter & Sort Toolbar -->
+                <section class="filter-sort-section">
+                    <div class="filter-sort-toolbar">
+                        <div class="sort-group">
+                            <label for="sortSelect"><i class="ph ph-sort-ascending"></i> 排序方式：</label>
+                            <div class="select-wrapper">
+                                <select id="sortSelect" class="styled-select">
+                                    <option value="default">預設推薦</option>
+                                    <option value="rating-desc">評分最高</option>
+                                    <option value="reviews-desc">評價最多</option>
+                                    <option value="price-asc">價格：由低到高</option>
+                                    <option value="price-desc">價格：由高到低</option>
+                                </select>
+                                <i class="ph ph-caret-down select-caret"></i>
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <span class="filter-label"><i class="ph ph-funnel"></i> 快速篩選：</span>
+                            <div class="filter-chips" id="filterChips">
+                                <button class="filter-chip-btn" data-tag="冷氣開放">
+                                    <i class="ph ph-snowflake"></i> 冷氣開放
+                                </button>
+                                <button class="filter-chip-btn" data-tag="有座位">
+                                    <i class="ph ph-chair"></i> 有座位
+                                </button>
+                                <button class="filter-chip-btn" data-tag="平價首選">
+                                    <i class="ph ph-coins"></i> 平價首選
+                                </button>
+                                <button class="filter-chip-btn" data-tag="排隊名店">
+                                    <i class="ph ph-users"></i> 排隊名店
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
                 <section class="restaurant-list-section">
                     <div class="section-header">
                         <h2>推薦美食</h2>
