@@ -4,6 +4,17 @@ let currentRestaurant = null;
 let searchQuery = '';
 let currentSort = 'default';
 let activeFilterTags = [];
+let favorites = [];
+let showFavoritesOnly = false;
+let showOpenOnly = false;
+let selectedBudgets = ['$', '$$', '$$$'];
+let currentPriceFilter = 'all';
+let currentSortFilter = 'default';
+let isLoading = false;
+let userAccount = localStorage.getItem('fcuEatsUser') || null;
+let isAnonymousDefault = localStorage.getItem('fcuEatsAnonymous') !== 'false';
+let reviewCooldownActive = false;
+let reviewCooldownTimer = null;
 
 // DOM Elements
 const homeView = document.getElementById('homeView');
@@ -189,36 +200,7 @@ function updateRestaurantRating(restaurant) {
     restaurant.rating = parseFloat((sum / restaurant.reviews.length).toFixed(1));
 }
 
-function loadFavoritesFromStorage() {
-    const stored = localStorage.getItem('fcuEatsFavorites');
-    favorites = stored ? JSON.parse(stored) : [];
-}
 
-function saveFavoritesToStorage() {
-    localStorage.setItem('fcuEatsFavorites', JSON.stringify(favorites));
-}
-
-function toggleFavorite(id, event) {
-    if (event) event.stopPropagation();
-    const index = favorites.indexOf(id);
-    if (index === -1) {
-        favorites.push(id);
-    } else {
-        favorites.splice(index, 1);
-    }
-    saveFavoritesToStorage();
-    
-    // Update UI if in detail view
-    if (currentRestaurant && currentRestaurant.id === id) {
-        const btn = document.getElementById('detailFavoriteBtn');
-        if (btn) {
-            const isFav = favorites.includes(id);
-            btn.classList.toggle('active', isFav);
-            btn.querySelector('i').className = isFav ? 'ph-fill ph-heart' : 'ph ph-heart';
-        }
-    }
-    renderRestaurants();
-}
 
 function loadReviewsFromStorage() {
     const storedReviews = localStorage.getItem('fcuEatsReviews');
@@ -687,18 +669,84 @@ function renderRestaurants() {
         filtered = filtered.filter(r => activeFilterTags.every(tag => r.tags.includes(tag)));
     }
 
-
-        }
-    });
-
     // Filter by price (Bottom Sheet)
     if (currentPriceFilter !== 'all') {
         filtered = filtered.filter(r => r.price === currentPriceFilter);
     }
 
+    // Filter by budget range (Home budget chips)
+    if (selectedBudgets && selectedBudgets.length > 0) {
+        filtered = filtered.filter(r => selectedBudgets.includes(r.price));
+    }
 
+    // Filter by "only open" status
+    if (showOpenOnly) {
+        filtered = filtered.filter(r => isRestaurantOpen(r.hours));
+    }
+
+    // Calculate distance to each restaurant
+    filtered.forEach(r => {
+        if (r.coordinates) {
+            r.distance = calculateDistance(userLocation.lat, userLocation.lng, r.coordinates.lat, r.coordinates.lng);
+        } else {
+            r.distance = Infinity;
+        }
+    });
+
+    // Sort Logic
+    const sortType = (currentSort !== 'default') ? currentSort : currentSortFilter;
+    if (sortType !== 'default') {
+        if (sortType === 'distance-asc' || sortType === 'distance') {
+            filtered.sort((a, b) => a.distance - b.distance);
+        } else if (sortType === 'rating-desc' || sortType === 'rating') {
+            filtered.sort((a, b) => b.rating - a.rating);
+        } else if (sortType === 'reviews-desc' || sortType === 'reviews') {
+            filtered.sort((a, b) => b.reviewCount - a.reviewCount);
+        } else if (sortType === 'price-asc') {
+            filtered.sort((a, b) => a.price.length - b.price.length);
+        } else if (sortType === 'price-desc') {
+            filtered.sort((a, b) => b.price.length - a.price.length);
+        }
+    } else {
+        // Default recommendation: sort by rating descending
+        filtered.sort((a, b) => b.rating - a.rating);
+    }
+
+    if (filtered.length === 0) {
+        if (showFavoritesOnly) {
+            restaurantGrid.innerHTML = `
+                <div class="empty-state" style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
+                    <div class="empty-state-icon" style="font-size: 3rem; margin-bottom: 1rem; color: var(--primary);">
+                        <i class="ph ph-heart"></i>
+                    </div>
+                    <h3>尚未收藏任何店家</h3>
+                    <p style="margin-bottom: 1.5rem;">點擊美食卡片上的愛心，即可把店家加入您的收藏清單中！</p>
+                    <button class="submit-btn" style="padding: 0.6rem 1.5rem; font-size: 0.9rem;" onclick="disableFavoritesFilter()">
+                        <i class="ph ph-sparkles"></i> 探索逢甲美食
+                    </button>
+                </div>
+            `;
+        } else {
+            restaurantGrid.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
+                    <i class="ph ph-mask-sad" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                    <p>沒有符合條件的美食，要不要換個篩選條件試試？</p>
+                </div>
+            `;
+        }
+        return;
+    }
+
+    restaurantGrid.innerHTML = filtered.map((r, index) => {
+        const isFav = favorites.includes(r.id);
+        const favIconClass = isFav ? 'ph-fill ph-heart' : 'ph ph-heart';
+        const isOpen = isRestaurantOpen(r.hours);
+        
+        // Check if user budget matches the restaurant price for badge display
+        const budgetMatches = selectedBudgets.includes(r.price);
+        
         return `
-            <div class="${cardClass}" onclick="showDetailView(${r.id})" style="animation-delay: ${index * 0.05}s; opacity: 0; animation-fill-mode: forwards;">
+            <div class="restaurant-card ${!isOpen ? 'muted' : ''}" onclick="showDetailView(${r.id})" style="animation-delay: ${index * 0.05}s; opacity: 0; animation-fill-mode: forwards;">
                 <div class="card-image-wrapper">
                     <img src="${r.image}" alt="${r.name}" class="card-image">
                     <button class="favorite-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(${r.id}, event)" title="${isFav ? '取消收藏' : '加入收藏'}" aria-label="${isFav ? '取消收藏' : '加入收藏'}">
@@ -724,7 +772,8 @@ function renderRestaurants() {
                         </div>
                     </div>
                     <div class="card-info">
-
+                        <span class="price-tag ${budgetMatches ? 'matching' : 'not-matching'}">${r.price}</span> • <span>${getCategoryName(r.category)}</span>
+                        ${budgetMatches && selectedBudgets.length < 3 ? `<span class="budget-match-badge"><i class="ph ph-check-circle"></i> 符合預算</span>` : ''}
                     </div>
                     <div class="card-tags">
                         ${r.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
@@ -736,14 +785,72 @@ function renderRestaurants() {
 }
 
 window.disableFavoritesFilter = function() {
-    showFavoritesOnly = false;
-    const favToggle = document.getElementById('favoritesToggle');
-    if (favToggle) {
-        favToggle.classList.remove('active');
-        favToggle.querySelector('i').className = 'ph ph-heart';
+    if (showFavoritesOnly) {
+        const favToggle = document.getElementById('favoritesToggle');
+        if (favToggle) {
+            favToggle.click();
+        }
     }
-    renderRestaurants();
+    const section = document.querySelector('.restaurant-list-section');
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+    }
 };
+
+window.toggleFavorite = function(id, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    const restaurant = mockData.restaurants.find(r => r.id === id);
+    const rName = restaurant ? restaurant.name : '';
+    
+    const index = favorites.indexOf(id);
+    let added = false;
+    if (index > -1) {
+        favorites.splice(index, 1);
+    } else {
+        favorites.push(id);
+        added = true;
+    }
+    saveFavoritesToStorage();
+    
+    // Re-render restaurant grid to update card hearts
+    renderRestaurants();
+    
+    // Update detail view heart if open
+    if (currentRestaurant && currentRestaurant.id === id) {
+        const favBtn = document.getElementById('detailFavoriteBtn');
+        if (favBtn) {
+            const isFav = favorites.includes(id);
+            if (isFav) {
+                favBtn.classList.add('active');
+                favBtn.querySelector('i').className = 'ph-fill ph-heart';
+            } else {
+                favBtn.classList.remove('active');
+                favBtn.querySelector('i').className = 'ph ph-heart';
+            }
+        }
+    }
+    
+    // Show premium toast
+    if (added) {
+        showToast(
+            `已將「${rName}」加入我的收藏！`, 
+            showFavoritesOnly ? null : '查看收藏', 
+            () => {
+                const favToggle = document.getElementById('favoritesToggle');
+                if (favToggle && !showFavoritesOnly) {
+                    favToggle.click();
+                }
+            }
+        );
+    } else {
+        showToast(`已將「${rName}」移出收藏。`);
+    }
+}
+
+
 
 window.clearAllFilters = function() {
     currentCategory = 'all';

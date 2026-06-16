@@ -2023,3 +2023,147 @@ textarea:focus {
 }
 
 
+
+
+/* Glassmorphic Restaurant Status Badge */
+.status-badge {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    backdrop-filter: blur(8px) saturate(180%);
+    -webkit-backdrop-filter: blur(8px) saturate(180%);
+    box-shadow: var(--shadow-md);
+    transition: var(--transition);
+}
+
+.status-badge.open {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+[data-theme="dark"] .status-badge.open {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.status-badge.closed {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+[data-theme="dark"] .status-badge.closed {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+/* Status Pulsing Dot animation */
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-badge.open .status-dot {
+    background-color: #10b981;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: statusPulse 1.8s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+[data-theme="dark"] .status-badge.open .status-dot {
+    background-color: #34d399;
+    box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
+}
+
+.status-badge.closed .status-dot {
+    background-color: #ef4444;
+}
+
+[data-theme="dark"] .status-badge.closed .status-dot {
+    background-color: #f87171;
+}
+
+@keyframes statusPulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 5px rgba(16, 185, 129, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+/* Detail View Status Pill */
+.detail-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: var(--transition);
+    border: 1px solid transparent;
+}
+
+.detail-status-pill.open {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+[data-theme="dark"] .detail-status-pill.open {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+.detail-status-pill.closed {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+[data-theme="dark"] .detail-status-pill.closed {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+.detail-status-pill .status-dot {
+    width: 8px;
+    height: 8px;
+}
+
+.detail-status-pill.open .status-dot {
+    background-color: #10b981;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+    animation: statusPulse 1.8s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+[data-theme="dark"] .detail-status-pill.open .status-dot {
+    background-color: #34d399;
+}
+
+.detail-status-pill.closed .status-dot {
+    background-color: #ef4444;
+}
+
+[data-theme="dark"] .detail-status-pill.closed .status-dot {
+    background-color: #f87171;
+}
