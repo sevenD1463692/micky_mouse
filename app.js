@@ -507,6 +507,17 @@ function setupEventListeners() {
     if (sortSelect) {
         sortSelect.addEventListener('change', (e) => {
             currentSort = e.target.value;
+            loadRestaurantsWithSkeleton();
+        });
+    }
+
+    // Logo click listener to go back to home view
+    const logoEl = document.querySelector('.logo');
+    if (logoEl) {
+        logoEl.addEventListener('click', () => {
+            showHomeView();
+        });
+    }
 
     const favToggle = document.getElementById('favoritesToggle');
     if (favToggle) {

@@ -81,6 +81,7 @@ body {
     align-items: center;
     gap: 0.5rem;
     color: var(--primary);
+    cursor: pointer;
 }
 
 .logo i {
@@ -1649,4 +1650,376 @@ textarea:focus {
     color: var(--primary-hover);
     transform: scale(1.05);
 }
+
+/* ==========================================================================
+   NID Login Modal
+   ========================================================================== */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+}
+
+.modal.hidden {
+    display: none !important;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    position: relative;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    width: 90%;
+    max-width: 450px;
+    z-index: 1001;
+    box-shadow: var(--shadow-lg);
+    animation: modal-slide-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modal-slide-in {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.modal-header h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--primary);
+}
+
+.modal-desc {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.75rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close-btn:hover {
+    color: var(--primary);
+}
+
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-wrapper i {
+    position: absolute;
+    left: 1rem;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+}
+
+.input-wrapper input {
+    width: 100%;
+    padding: 0.8rem 1rem 0.8rem 2.8rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-color);
+    color: var(--text-main);
+    font-size: 1rem;
+    outline: none;
+    transition: var(--transition);
+}
+
+.input-wrapper input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.checkbox-group {
+    margin-top: -0.5rem;
+    margin-bottom: 1rem;
+}
+
+.login-submit {
+    padding: 0.8rem;
+    font-size: 1.05rem;
+}
+
+/* ==========================================================================
+   Captcha and Verification
+   ========================================================================== */
+.captcha-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--bg-color);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+}
+
+#captchaQuestion {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text-main);
+    min-width: 80px;
+    text-align: center;
+}
+
+.captcha-box input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: var(--surface-color);
+    color: var(--text-main);
+    font-size: 1rem;
+    outline: none;
+    text-align: center;
+}
+
+.captcha-box input:focus {
+    border-color: var(--primary);
+}
+
+.cooldown-text {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 0.25rem;
+}
+
+/* ==========================================================================
+   Mobile bottom navigation & Bottom sheet
+   ========================================================================== */
+/* Floating Filter Button */
+.floating-btn {
+    position: fixed;
+    bottom: 5.5rem;
+    right: 1.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    box-shadow: var(--shadow-lg);
+    cursor: pointer;
+    display: none; /* Mobile only */
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    z-index: 99;
+    transition: var(--transition);
+}
+
+.floating-btn:hover {
+    background: var(--primary-hover);
+    transform: scale(1.05);
+}
+
+/* Bottom Nav */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 4.5rem;
+    background: var(--surface-color);
+    border-top: 1px solid var(--border-color);
+    display: none; /* Mobile only */
+    grid-template-columns: repeat(3, 1fr);
+    z-index: 100;
+    box-shadow: 0 -4px 6px -1px rgb(0 0 0 / 0.05);
+}
+
+.bottom-nav-item {
+    background: transparent;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    gap: 0.25rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.bottom-nav-item i {
+    font-size: 1.5rem;
+}
+
+.bottom-nav-item span {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.bottom-nav-item.active {
+    color: var(--primary);
+}
+
+/* Bottom Sheet */
+.bottom-sheet {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    transition: opacity 0.3s ease;
+}
+
+.bottom-sheet.hidden {
+    pointer-events: none;
+    opacity: 0;
+}
+
+.bottom-sheet-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.bottom-sheet-content {
+    position: relative;
+    background: var(--surface-color);
+    border-top: 1px solid var(--border-color);
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    width: 100%;
+    max-height: 80vh;
+    z-index: 501;
+    box-shadow: 0 -10px 15px -3px rgb(0 0 0 / 0.1);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.bottom-sheet:not(.hidden) .bottom-sheet-content {
+    transform: translateY(0);
+}
+
+.bottom-sheet-drag-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+    margin: 0.75rem auto 0.25rem;
+}
+
+.bottom-sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.bottom-sheet-header h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.bottom-sheet-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.filter-group {
+    margin-bottom: 1.5rem;
+}
+
+.filter-title {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+}
+
+.filter-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.filter-pill {
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-main);
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.filter-pill:hover {
+    border-color: var(--primary);
+}
+
+.filter-pill.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* Adjustments for Mobile Bottom Padding */
+@media (max-width: 768px) {
+    main {
+        padding-bottom: 6rem; /* Ensure main content doesn't get hidden under bottom nav */
+    }
+    
+    .floating-btn {
+        display: flex;
+    }
+    
+    .bottom-nav {
+        display: grid;
+    }
+}
+
 
