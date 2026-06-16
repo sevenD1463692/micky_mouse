@@ -988,6 +988,7 @@ function renderDetailContent() {
     const r = currentRestaurant;
     const isOpen = isRestaurantOpen(r.hours);
     const isFav = favorites.includes(r.id);
+    const distance = calculateDistance(userLocation.lat, userLocation.lng, r.coordinates?.lat || 24.179, r.coordinates?.lng || 120.648);
 
     detailContent.innerHTML = `
         <div class="detail-header">
