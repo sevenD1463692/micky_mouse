@@ -4,26 +4,6 @@ let currentRestaurant = null;
 let searchQuery = '';
 let currentSort = 'default';
 let activeFilterTags = [];
-let showFavoritesOnly = false;
-let favorites = [];
-let selectedBudgets = ['$', '$$', '$$$'];
-let showOpenOnly = false;
-
-// Bottom sheet specific filters
-let currentPriceFilter = 'all';
-let currentSortFilter = 'default';
-
-let isLoading = false;
-let userAccount = localStorage.getItem('fcuEatsUser') || null;
-let isAnonymousDefault = localStorage.getItem('fcuEatsAnonymous') === 'true';
-
-// Captcha State
-let captchaSolution = 0;
-
-// Cooldown State for review submission
-let reviewCooldownActive = false;
-let reviewCooldownTimer = null;
-let lastReviewTime = {}; // Limit review frequency
 
 // DOM Elements
 const homeView = document.getElementById('homeView');
@@ -207,6 +187,37 @@ function updateRestaurantRating(restaurant) {
         return acc + ratingVal;
     }, 0);
     restaurant.rating = parseFloat((sum / restaurant.reviews.length).toFixed(1));
+}
+
+function loadFavoritesFromStorage() {
+    const stored = localStorage.getItem('fcuEatsFavorites');
+    favorites = stored ? JSON.parse(stored) : [];
+}
+
+function saveFavoritesToStorage() {
+    localStorage.setItem('fcuEatsFavorites', JSON.stringify(favorites));
+}
+
+function toggleFavorite(id, event) {
+    if (event) event.stopPropagation();
+    const index = favorites.indexOf(id);
+    if (index === -1) {
+        favorites.push(id);
+    } else {
+        favorites.splice(index, 1);
+    }
+    saveFavoritesToStorage();
+    
+    // Update UI if in detail view
+    if (currentRestaurant && currentRestaurant.id === id) {
+        const btn = document.getElementById('detailFavoriteBtn');
+        if (btn) {
+            const isFav = favorites.includes(id);
+            btn.classList.toggle('active', isFav);
+            btn.querySelector('i').className = isFav ? 'ph-fill ph-heart' : 'ph ph-heart';
+        }
+    }
+    renderRestaurants();
 }
 
 function loadReviewsFromStorage() {
@@ -492,32 +503,22 @@ function setupEventListeners() {
         showHomeView();
     });
 
-    // Sort listener
     const sortSelect = document.getElementById('sortSelect');
     if (sortSelect) {
         sortSelect.addEventListener('change', (e) => {
             currentSort = e.target.value;
-            loadRestaurantsWithSkeleton();
-        });
-    }
 
-    // Favorites filter toggle listener
     const favToggle = document.getElementById('favoritesToggle');
     if (favToggle) {
         favToggle.addEventListener('click', () => {
             showFavoritesOnly = !showFavoritesOnly;
-            if (showFavoritesOnly) {
-                favToggle.classList.add('active');
-                favToggle.querySelector('i').className = 'ph-fill ph-heart';
-            } else {
-                favToggle.classList.remove('active');
-                favToggle.querySelector('i').className = 'ph ph-heart';
-            }
+            favToggle.classList.toggle('active', showFavoritesOnly);
+            favToggle.querySelector('i').className = showFavoritesOnly ? 'ph-fill ph-heart' : 'ph ph-heart';
             renderRestaurants();
         });
     }
 
-    // Filter chips listener (e.g. 冷氣開放, 有座位, etc.)
+
     const filterChips = document.querySelectorAll('.filter-chip-btn');
     filterChips.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -675,17 +676,7 @@ function renderRestaurants() {
         filtered = filtered.filter(r => activeFilterTags.every(tag => r.tags.includes(tag)));
     }
 
-    // Filter by open only
-    if (showOpenOnly) {
-        filtered = filtered.filter(r => isRestaurantOpen(r.hours));
-    }
 
-    // Calculate distance to each restaurant
-    filtered.forEach(r => {
-        if (r.coordinates && userLocation) {
-            r.distance = calculateDistance(userLocation.lat, userLocation.lng, r.coordinates.lat, r.coordinates.lng);
-        } else {
-            r.distance = Infinity;
         }
     });
 
@@ -694,77 +685,6 @@ function renderRestaurants() {
         filtered = filtered.filter(r => r.price === currentPriceFilter);
     }
 
-    // Prioritize restaurants matching selected budgets
-    // Only sort and highlight if the user has custom-selected their budget range (not all 3 are selected)
-    const hasBudgetPreference = selectedBudgets.length < 3;
-    if (hasBudgetPreference) {
-        filtered = [...filtered].sort((a, b) => {
-            const aMatch = selectedBudgets.includes(a.price);
-            const bMatch = selectedBudgets.includes(b.price);
-            if (aMatch && !bMatch) return -1;
-            if (!aMatch && bMatch) return 1;
-            return 0; // preserve original relative order
-        });
-    }
-
-    // Sort by selected criteria
-    if (currentSort !== 'default') {
-        if (currentSort === 'distance-asc') {
-            filtered.sort((a, b) => a.distance - b.distance);
-        } else if (currentSort === 'rating-desc') {
-            filtered.sort((a, b) => b.rating - a.rating);
-        } else if (currentSort === 'reviews-desc') {
-            filtered.sort((a, b) => b.reviewCount - a.reviewCount);
-        } else if (currentSort === 'price-asc') {
-            filtered.sort((a, b) => a.price.length - b.price.length);
-        } else if (currentSort === 'price-desc') {
-            filtered.sort((a, b) => b.price.length - a.price.length);
-        }
-    }
-
-    // Sort by rating or reviews (Bottom Sheet)
-    if (currentSortFilter === 'rating') {
-        filtered.sort((a, b) => b.rating - a.rating);
-    } else if (currentSortFilter === 'reviews') {
-        filtered.sort((a, b) => b.reviewCount - a.reviewCount);
-    }
-
-    if (filtered.length === 0) {
-        if (showFavoritesOnly) {
-            restaurantGrid.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">
-                        <i class="ph ph-heart"></i>
-                    </div>
-                    <h3>尚未收藏任何餐廳</h3>
-                    <p style="margin-bottom: 1.5rem;">點擊美食卡片上的愛心，或是進入詳情頁將喜愛的店家加入您的口袋名單吧！</p>
-                    <button class="submit-btn" style="padding: 0.6rem 1.5rem; font-size: 0.9rem;" onclick="disableFavoritesFilter()">
-                        <i class="ph ph-sparkles"></i> 探索熱門美食
-                    </button>
-                </div>
-            `;
-        } else {
-            restaurantGrid.innerHTML = `
-                <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
-                    <i class="ph ph-mask-sad" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                    <p>找不到符合的美食，換個篩選條件試試看吧！</p>
-                </div>
-            `;
-        }
-        return;
-    }
-
-    restaurantGrid.innerHTML = filtered.map((r, index) => {
-        const isOpen = isRestaurantOpen(r.hours);
-        const isFav = favorites.includes(r.id);
-        const favIconClass = isFav ? 'ph-fill ph-heart' : 'ph ph-heart';
-        
-        const isMatching = selectedBudgets.includes(r.price);
-        const cardClass = (hasBudgetPreference && !isMatching) ? 'restaurant-card muted' : 'restaurant-card';
-        const priceTagClass = hasBudgetPreference ? (isMatching ? 'price-tag matching' : 'price-tag not-matching') : '';
-        const matchBadgeHtml = (hasBudgetPreference && isMatching) 
-            ? `<span class="budget-match-badge"><i class="ph-fill ph-check-circle"></i> 符合預算</span>` 
-            : '';
 
         return `
             <div class="${cardClass}" onclick="showDetailView(${r.id})" style="animation-delay: ${index * 0.05}s; opacity: 0; animation-fill-mode: forwards;">
@@ -782,6 +702,7 @@ function renderRestaurants() {
                         <span>${formatDistance(r.distance)}</span>
                     </div>
                 </div>
+
                 <div class="card-content">
                     <div class="card-header">
                         <h3 class="card-title">${r.name}</h3>
@@ -792,8 +713,7 @@ function renderRestaurants() {
                         </div>
                     </div>
                     <div class="card-info">
-                        <span class="${priceTagClass}">${r.price}</span> • <span>${getCategoryName(r.category)}</span>
-                        ${matchBadgeHtml}
+
                     </div>
                     <div class="card-tags">
                         ${r.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
@@ -803,6 +723,16 @@ function renderRestaurants() {
         `;
     }).join('');
 }
+
+window.disableFavoritesFilter = function() {
+    showFavoritesOnly = false;
+    const favToggle = document.getElementById('favoritesToggle');
+    if (favToggle) {
+        favToggle.classList.remove('active');
+        favToggle.querySelector('i').className = 'ph ph-heart';
+    }
+    renderRestaurants();
+};
 
 window.clearAllFilters = function() {
     currentCategory = 'all';
@@ -938,16 +868,15 @@ function renderDetailContent() {
     const r = currentRestaurant;
     const isOpen = isRestaurantOpen(r.hours);
     const isFav = favorites.includes(r.id);
-    const favIconClass = isFav ? 'ph-fill ph-heart' : 'ph ph-heart';
-    
+
     detailContent.innerHTML = `
         <div class="detail-header">
             <img src="${r.image}" alt="${r.name}">
             <div class="detail-overlay">
                 <div class="detail-title-row">
                     <h2 class="detail-title">${r.name}</h2>
-                    <button id="detailFavoriteBtn" class="detail-favorite-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(${r.id}, event)" title="${isFav ? '取消收藏' : '加入收藏'}" aria-label="${isFav ? '取消收藏' : '加入收藏'}">
-                        <i class="${favIconClass}"></i>
+                    <button id="detailFavoriteBtn" class="detail-favorite-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(${r.id}, event)">
+                        <i class="${isFav ? 'ph-fill ph-heart' : 'ph ph-heart'}"></i>
                     </button>
                 </div>
                 <div class="detail-meta">
@@ -972,7 +901,7 @@ function renderDetailContent() {
                             <i class="ph ph-map-pin"></i>
                             <div class="info-content">
                                 <strong>地址與距離</strong>
-                                <p>${r.address} <span id="detailDistanceText" style="color: var(--primary); font-weight: 600; margin-left: 0.5rem;">(距離目前位置 ${formatDistance(calculateDistance(userLocation.lat, userLocation.lng, r.coordinates.lat, r.coordinates.lng))})</span></p>
+                                <p>${r.address} <span style="color: var(--primary); font-weight: 600; margin-left: 0.5rem;">(距離目前位置約 ${formatDistance(distance)})</span></p>
                             </div>
                         </li>
                         <li>
@@ -1035,13 +964,12 @@ function renderDetailContent() {
                                 <textarea id="reviewComment" placeholder="分享您的真實體驗（至少 5 字，限 200 字）..." required></textarea>
                             </div>
                             
-                            <!-- Security and Verification -->
                             <div class="form-group captcha-group">
                                 <label>安全驗證 (防止機器人洗版)</label>
                                 <div class="captcha-box">
                                     <span id="captchaQuestion">載入中...</span>
                                     <input type="number" id="captchaAnswer" placeholder="輸入答案" required>
-                                    <button type="button" id="refreshCaptcha" class="icon-btn" style="padding: 0.25rem;" aria-label="重新整理驗證碼">
+                                    <button type="button" id="refreshCaptcha" class="icon-btn" style="padding: 0.25rem;">
                                         <i class="ph ph-arrows-counter-clockwise"></i>
                                     </button>
                                 </div>
@@ -1057,9 +985,6 @@ function renderDetailContent() {
                             <button type="submit" class="submit-btn" ${reviewCooldownActive ? 'disabled' : ''}>
                                 <i class="ph ph-paper-plane-right"></i> 送出評價
                             </button>
-                            <p class="cooldown-text" style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-top: 0.5rem;">
-                                * 送出評論後，該店家每分鐘限制評論一次。
-                            </p>
                         </form>
                     ` : `
                         <div style="text-align: center; padding: 2rem; background: var(--bg-color); border-radius: var(--radius-md); border: 1px dashed var(--border-color);">

@@ -1,15 +1,16 @@
 :root {
     /* Color Palette */
-    --primary: #f97316; /* Vibrant Orange for Food */
+    --primary: #f97316;
+    /* Vibrant Orange for Food */
     --primary-hover: #ea580c;
     --primary-light: #ffedd5;
-    
+
     --bg-color: #f8fafc;
     --surface-color: #ffffff;
     --text-main: #0f172a;
     --text-muted: #64748b;
     --border-color: #e2e8f0;
-    
+
     /* Star Rating */
     --star-color: #facc15;
     --star-empty: #e2e8f0;
@@ -26,10 +27,10 @@
     --radius-lg: 16px;
     --radius-md: 12px;
     --radius-sm: 8px;
-    
+
     /* Typography */
     --font-family: 'Inter', 'Noto Sans TC', sans-serif;
-    
+
     /* Transitions */
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -159,12 +160,20 @@ main {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Categories */
-.categories h2, .restaurant-list-section h2 {
+.categories h2,
+.restaurant-list-section h2 {
     font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: 1.5rem;
@@ -178,10 +187,13 @@ main {
     gap: 1rem;
     overflow-x: auto;
     padding-bottom: 1rem;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
+    /* Firefox */
 }
+
 .category-list::-webkit-scrollbar {
-    display: none; /* Chrome, Safari */
+    display: none;
+    /* Chrome, Safari */
 }
 
 .category-chip {
@@ -364,7 +376,7 @@ main {
     left: 0;
     right: 0;
     padding: 3rem 2rem 2rem;
-    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
     color: white;
 }
 
@@ -612,13 +624,17 @@ main {
     transition: var(--transition);
 }
 
-.stars-selector i.active, .stars-selector i:hover, .stars-selector i:hover ~ i {
+.stars-selector i.active,
+.stars-selector i:hover,
+.stars-selector i:hover~i {
     color: var(--star-color);
 }
+
 .stars-selector:hover i {
     color: var(--star-color);
 }
-.stars-selector i:hover ~ i {
+
+.stars-selector i:hover~i {
     color: var(--star-empty) !important;
 }
 
@@ -674,7 +690,8 @@ textarea:focus {
 }
 
 .restaurant-list-section h2 {
-    margin-bottom: 0; /* Override */
+    margin-bottom: 0;
+    /* Override */
 }
 
 /* Budget Filter */
@@ -773,8 +790,17 @@ textarea:focus {
 }
 
 @keyframes scaleIn {
-    from { transform: scale(0.9); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
 /* Location Panel Styles */
 .location-panel {
     background: var(--surface-color);
@@ -822,9 +848,11 @@ textarea:focus {
     0% {
         box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.4);
     }
+
     70% {
         box-shadow: 0 0 0 10px rgba(249, 115, 22, 0);
     }
+
     100% {
         box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
     }
@@ -834,6 +862,7 @@ textarea:focus {
     0% {
         transform: rotate(0deg);
     }
+
     100% {
         transform: rotate(360deg);
     }
@@ -1025,15 +1054,15 @@ textarea:focus {
         gap: 1rem;
         padding: 1rem;
     }
-    
+
     .search-bar {
         max-width: 100%;
     }
-    
+
     .detail-header {
         height: 300px;
     }
-    
+
     .detail-title {
         font-size: 2rem;
     }
@@ -1048,7 +1077,9 @@ textarea:focus {
         align-items: stretch;
     }
 
-    .location-btn, .location-select, .select-wrapper {
+    .location-btn,
+    .location-select,
+    .select-wrapper {
         width: 100%;
     }
 
@@ -1135,7 +1166,7 @@ textarea:focus {
     transition: var(--transition);
 }
 
-.styled-select:focus + .select-caret {
+.styled-select:focus+.select-caret {
     color: var(--primary);
 }
 
@@ -1202,19 +1233,19 @@ textarea:focus {
         align-items: flex-start;
         gap: 1.25rem;
     }
-    
+
     .sort-group {
         width: 100%;
         justify-content: space-between;
     }
-    
+
     .filter-group {
         width: 100%;
         flex-direction: column;
         align-items: flex-start;
         gap: 0.75rem;
     }
-    
+
     .filter-chips {
         width: 100%;
         overflow-x: auto;
