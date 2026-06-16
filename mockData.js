@@ -236,6 +236,180 @@ const mockData = {
                     comment: '剛起鍋的最好吃，非常酥脆而且很有嚼勁。排隊人潮多但老闆動作很快。'
                 }
             ]
+        },
+        {
+            id: 9,
+            name: '美軍豆乳冰',
+            category: 'dessert',
+            tags: ['甜點', '消暑', '冷氣開放', '有座位'],
+            image: 'https://images.unsplash.com/photo-1551024601-bec78aea704b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.5,
+            reviewCount: 42,
+            price: '$',
+            address: '台中市西屯區福星路234號',
+            coordinates: { lat: 24.177212, lng: 120.644123 },
+            hours: '12:00 - 22:00',
+            description: '濃郁有機豆乳冰與手工豆花，豆香十足，甜而不膩。',
+            reviews: [
+                {
+                    id: 901,
+                    user: '豆漿愛好者',
+                    date: '2023-11-10',
+                    ratings: {
+                        price: 4,
+                        portion: 4,
+                        waitTime: 4,
+                        sitability: 4
+                    },
+                    overallRating: 4.5,
+                    comment: '豆乳冰香氣超濃！配料的手工芋圓跟紅豆也很棒，內用空間乾淨舒服。'
+                }
+            ]
+        },
+        {
+            id: 10,
+            name: '激旨燒鳥',
+            category: 'snacks',
+            tags: ['特色小吃', '排隊名店', '重口味', '有座位'],
+            image: 'https://images.unsplash.com/photo-1519623286359-e9f3cbef015b?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.7,
+            reviewCount: 312,
+            price: '$$',
+            address: '台中市西屯區文華路150巷18號',
+            coordinates: { lat: 24.180905, lng: 120.648192 },
+            hours: '17:00 - 00:30',
+            description: '逢甲超人氣日式串燒，現場有歌手駐唱，氛圍超棒，必點雞肉串。',
+            reviews: [
+                {
+                    id: 1001,
+                    user: '串燒大師',
+                    date: '2023-12-01',
+                    ratings: {
+                        price: 3,
+                        portion: 3,
+                        waitTime: 2,
+                        sitability: 5
+                    },
+                    overallRating: 4.7,
+                    comment: '五花肉串麻糬超驚艷！現場駐唱唱歌很好聽，氣氛真的很像在日本居酒屋。'
+                }
+            ]
+        },
+        {
+            id: 11,
+            name: '阿華黑輪',
+            category: 'snacks',
+            tags: ['特色小吃', '傳統小吃', '銅板美食'],
+            image: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.3,
+            reviewCount: 154,
+            price: '$',
+            address: '台中市西屯區文華路55號',
+            coordinates: { lat: 24.178550, lng: 120.644820 },
+            hours: '16:30 - 23:30',
+            description: '逢甲老字號黑輪，湯頭清甜可免費無限續加，黑輪醬油獨特。',
+            reviews: [
+                {
+                    id: 1101,
+                    user: '湯控',
+                    date: '2023-10-25',
+                    ratings: {
+                        price: 5,
+                        portion: 4,
+                        waitTime: 4,
+                        sitability: 2
+                    },
+                    overallRating: 4.3,
+                    comment: '黑輪湯超級好喝！冬天喝一碗全身都暖了，免費續湯真的太佛心。'
+                }
+            ]
+        },
+        {
+            id: 12,
+            name: '一心素食臭豆腐',
+            category: 'snacks',
+            tags: ['特色小吃', '排隊名店', '素食友善'],
+            image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.4,
+            reviewCount: 185,
+            price: '$',
+            address: '台中市西屯區福星路361號',
+            coordinates: { lat: 24.179450, lng: 120.644910 },
+            hours: '16:00 - 23:00',
+            description: '外酥內嫩的現炸臭豆腐，搭配特製小黃瓜與泡菜，爽口不油膩。',
+            reviews: [
+                {
+                    id: 1201,
+                    user: '臭豆腐愛好者',
+                    date: '2023-11-15',
+                    ratings: {
+                        price: 4,
+                        portion: 4,
+                        waitTime: 3,
+                        sitability: 2
+                    },
+                    overallRating: 4.4,
+                    comment: '豆腐塞滿小黃瓜絲跟醬汁，外皮炸得超酥，吃完非常清爽！'
+                }
+            ]
+        },
+        {
+            id: 13,
+            name: '官芝霖大腸包小腸',
+            category: 'snacks',
+            tags: ['特色小吃', '排隊名店', '銅板美食'],
+            image: 'https://images.unsplash.com/photo-1585325701165-351af916e5ec?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.2,
+            reviewCount: 295,
+            price: '$',
+            address: '台中市西屯區逢甲路20號',
+            coordinates: { lat: 24.179210, lng: 120.645050 },
+            hours: '12:00 - 01:00',
+            description: '逢甲夜市指標性排隊美食，炭烤香氣逼人，蒜味與辣味醬料堪稱絕配。',
+            reviews: [
+                {
+                    id: 1301,
+                    user: '逢甲老饕',
+                    date: '2023-09-20',
+                    ratings: {
+                        price: 4,
+                        portion: 4,
+                        waitTime: 2,
+                        sitability: 1
+                    },
+                    overallRating: 4.2,
+                    comment: '炭火香味十足，一定要加蒜頭跟酸菜，雖然每次都要排隊，但味道很經典。'
+                }
+            ]
+        },
+        {
+            id: 14,
+            name: '小二咖哩',
+            category: 'bento',
+            tags: ['便當快餐', '有座位', '冷氣開放', '平價首選'],
+            image: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.5,
+            reviewCount: 96,
+            price: '$$',
+            address: '台中市西屯區逢甲路19巷10號',
+            coordinates: { lat: 24.178120, lng: 120.646100 },
+            hours: '11:00 - 20:30',
+            description: '濃郁日式咖哩，炸豬排外酥內多汁，深受逢甲學生喜愛的平價美味。',
+            reviews: [
+                {
+                    id: 1401,
+                    user: '咖哩控學生',
+                    date: '2023-12-12',
+                    ratings: {
+                        price: 5,
+                        portion: 5,
+                        waitTime: 4,
+                        sitability: 4
+                    },
+                    overallRating: 4.5,
+                    comment: '咖哩醬很濃郁微甜，豬排很厚而且炸得很酥脆，飯跟醬還可以免費續一次，CP值超高！'
+                }
+            ]
         }
     ]
 };

@@ -15,6 +15,8 @@ let userAccount = localStorage.getItem('fcuEatsUser') || null;
 let isAnonymousDefault = localStorage.getItem('fcuEatsAnonymous') !== 'false';
 let reviewCooldownActive = false;
 let reviewCooldownTimer = null;
+let lastReviewTime = {};
+let captchaSolution = null;
 
 // DOM Elements
 const homeView = document.getElementById('homeView');
