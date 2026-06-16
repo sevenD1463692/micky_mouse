@@ -30,6 +30,10 @@
                 <div class="user-status" id="userStatus">
                     <button id="loginBtn" class="login-btn"><i class="ph ph-sign-in"></i> NID 登入</button>
                 </div>
+                <button id="favoritesToggle" class="icon-btn" aria-label="查看我的收藏" title="我的收藏">
+                    <i class="ph ph-heart"></i>
+                    <span id="favoritesBadge" class="badge hidden">0</span>
+                </button>
                 <button id="fontDecrease" class="icon-btn font-control-btn" aria-label="減小字型">A-</button>
                 <button id="fontIncrease" class="icon-btn font-control-btn" aria-label="加大字型">A+</button>
                 <button id="themeToggle" class="icon-btn" aria-label="切換顯示模式">
@@ -85,6 +89,7 @@
                             <div class="select-wrapper">
                                 <select id="sortSelect" class="styled-select">
                                     <option value="default">預設推薦</option>
+                                    <option value="distance-asc">距離最近</option>
                                     <option value="rating-desc">評分最高</option>
                                     <option value="reviews-desc">評價最多</option>
                                     <option value="price-asc">價格：由低到高</option>
@@ -116,11 +121,23 @@
                 <section class="restaurant-list-section">
                     <div class="section-header">
                         <h2>推薦美食</h2>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="openOnlyToggle">
-                            <span class="slider"></span>
-                            <span class="toggle-label">只看營業中</span>
-                        </label>
+                        <div class="header-controls-group" style="display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;">
+                            <!-- 預算範圍 -->
+                            <div class="budget-filter-container">
+                                <span class="budget-filter-label"><i class="ph ph-funnel"></i> 預算範圍</span>
+                                <div class="budget-filter-chips" id="budgetFilterChips">
+                                    <button class="budget-filter-chip active" data-budget="$">$ 平價</button>
+                                    <button class="budget-filter-chip active" data-budget="$$">$$ 中價</button>
+                                    <button class="budget-filter-chip active" data-budget="$$$">$$$ 高價</button>
+                                </div>
+                            </div>
+                            <!-- 只看營業中 -->
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="openOnlyToggle">
+                                <span class="slider"></span>
+                                <span class="toggle-label">只看營業中</span>
+                            </label>
+                        </div>
                     </div>
                     <div class="restaurant-grid" id="restaurantGrid">
                         <!-- Restaurant cards injected by JS -->

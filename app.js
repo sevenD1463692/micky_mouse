@@ -4,6 +4,26 @@ let currentRestaurant = null;
 let searchQuery = '';
 let currentSort = 'default';
 let activeFilterTags = [];
+let showFavoritesOnly = false;
+let favorites = [];
+let selectedBudgets = ['$', '$$', '$$$'];
+let showOpenOnly = false;
+
+// Bottom sheet specific filters
+let currentPriceFilter = 'all';
+let currentSortFilter = 'default';
+
+let isLoading = false;
+let userAccount = localStorage.getItem('fcuEatsUser') || null;
+let isAnonymousDefault = localStorage.getItem('fcuEatsAnonymous') === 'true';
+
+// Captcha State
+let captchaSolution = 0;
+
+// Cooldown State for review submission
+let reviewCooldownActive = false;
+let reviewCooldownTimer = null;
+let lastReviewTime = {}; // Limit review frequency
 
 // DOM Elements
 const homeView = document.getElementById('homeView');
@@ -43,6 +63,19 @@ const navMyReviews = document.getElementById('navMyReviews');
 const sheetPriceOptions = document.getElementById('sheetPriceOptions');
 const sheetSortOptions = document.getElementById('sheetSortOptions');
 
+// Distance & Location Constants and Variables
+const MOCK_LOCATIONS = {
+    'fcu-gate': { lat: 24.178657, lng: 120.646548, name: '逢甲大學正門 (模擬)' },
+    'fcu-ie': { lat: 24.179515, lng: 120.648210, name: '逢甲大學資電館 (模擬)' },
+    'night-market': { lat: 24.179836, lng: 120.645511, name: '逢甲夜市入口 (模擬)' },
+    'mcdonalds': { lat: 24.176465, lng: 120.645398, name: '逢甲麥當勞 (模擬)' }
+};
+
+let userLocation = {
+    ...MOCK_LOCATIONS['fcu-gate'],
+    isGPS: false
+};
+
 // Initialize
 function init() {
     registerServiceWorker();
@@ -55,6 +88,10 @@ function init() {
     setupEventListeners();
     initTheme();
     setupMobileNav();
+    
+    // Initial sync and start background timer for live status updates
+    updateLiveStatuses();
+    setInterval(updateLiveStatuses, 30000);
 }
 
 function registerServiceWorker() {
@@ -65,6 +102,98 @@ function registerServiceWorker() {
                 .catch(err => console.log('Service Worker registration failed:', err));
         });
     }
+}
+
+// Distance and Location Utilities
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371e3; // meters
+    const phi1 = lat1 * Math.PI / 180;
+    const phi2 = lat2 * Math.PI / 180;
+    const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+    const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // in meters
+}
+
+function formatDistance(meters) {
+    if (isNaN(meters) || meters === Infinity) return '計算中';
+    if (meters < 1000) {
+        return `${Math.round(meters)}m`;
+    } else {
+        return `${(meters / 1000).toFixed(1)}km`;
+    }
+}
+
+function requestGPSLocation() {
+    const btn = document.getElementById('getLocationBtn');
+    const locationNameEl = document.getElementById('currentLocationName');
+    
+    if (!navigator.geolocation) {
+        alert('您的瀏覽器不支援 GPS 定位！');
+        return;
+    }
+    
+    btn.disabled = true;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="ph ph-circle-notch animate-spin"></i> 定位中...';
+    
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            
+            userLocation = {
+                lat: lat,
+                lng: lng,
+                name: `GPS 定位 (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+                isGPS: true
+            };
+            
+            locationNameEl.textContent = userLocation.name;
+            
+            // Add and select GPS option in select list
+            const selectEl = document.getElementById('mockLocationSelect');
+            let gpsOpt = document.getElementById('gpsSelectOption');
+            if (!gpsOpt) {
+                gpsOpt = document.createElement('option');
+                gpsOpt.id = 'gpsSelectOption';
+                gpsOpt.value = 'gps';
+                gpsOpt.textContent = '📍 真實 GPS 定位';
+                selectEl.appendChild(gpsOpt);
+            }
+            selectEl.value = 'gps';
+            
+            renderRestaurants();
+            if (currentRestaurant) {
+                // If detail is active, update distance
+                const distText = document.getElementById('detailDistanceText');
+                if (distText) {
+                    const dist = calculateDistance(userLocation.lat, userLocation.lng, currentRestaurant.coordinates.lat, currentRestaurant.coordinates.lng);
+                    distText.textContent = `(距離目前位置 ${formatDistance(dist)})`;
+                }
+            }
+            
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        },
+        (error) => {
+            console.error(error);
+            let errorMsg = '定位失敗，請確認是否已授權定位權限！';
+            if (error.code === error.PERMISSION_DENIED) {
+                errorMsg = '您拒絕了定位授權，將繼續使用模擬位置。';
+            }
+            alert(errorMsg);
+            
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+    );
 }
 
 // Storage Management
@@ -122,6 +251,177 @@ function saveReviewToStorage(restaurantId, review) {
     }
     parsed[restaurantId].unshift(review);
     localStorage.setItem('fcuEatsReviews', JSON.stringify(parsed));
+}
+
+function saveReportsToStorage(restaurantId, reviewId, count) {
+    let storedReports = localStorage.getItem('fcuEatsReports');
+    let parsed = storedReports ? JSON.parse(storedReports) : {};
+    parsed[reviewId] = count;
+    localStorage.setItem('fcuEatsReports', JSON.stringify(parsed));
+}
+
+function deleteReviewFromStorage(restaurantId, reviewId) {
+    let storedDeleted = localStorage.getItem('fcuEatsDeletedReviews');
+    let parsed = storedDeleted ? JSON.parse(storedDeleted) : [];
+    if (!parsed.includes(reviewId)) {
+        parsed.push(reviewId);
+    }
+    localStorage.setItem('fcuEatsDeletedReviews', JSON.stringify(parsed));
+}
+
+function getUserDailyReportCount() {
+    const today = new Date().toISOString().split('T')[0];
+    const stored = localStorage.getItem('fcuEatsUserDailyReports');
+    if (!stored) return { date: today, count: 0 };
+    
+    try {
+        const parsed = JSON.parse(stored);
+        if (parsed.date !== today) {
+            return { date: today, count: 0 };
+        }
+        return parsed;
+    } catch (e) {
+        return { date: today, count: 0 };
+    }
+}
+
+function incrementUserDailyReportCount() {
+    const today = new Date().toISOString().split('T')[0];
+    const dailyInfo = getUserDailyReportCount();
+    dailyInfo.count += 1;
+    dailyInfo.date = today;
+    localStorage.setItem('fcuEatsUserDailyReports', JSON.stringify(dailyInfo));
+}
+
+// Favorites Storage Management
+function loadFavoritesFromStorage() {
+    const stored = localStorage.getItem('fcuEatsFavorites');
+    favorites = stored ? JSON.parse(stored) : [];
+    updateFavoritesBadge();
+}
+
+function saveFavoritesToStorage() {
+    localStorage.setItem('fcuEatsFavorites', JSON.stringify(favorites));
+    updateFavoritesBadge();
+}
+
+function updateFavoritesBadge() {
+    const badge = document.getElementById('favoritesBadge');
+    if (badge) {
+        badge.textContent = favorites.length;
+        if (favorites.length > 0) {
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+}
+
+function showToast(message, actionText, actionCallback) {
+    let toast = document.getElementById('appToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'appToast';
+        toast.className = 'toast-container';
+        document.body.appendChild(toast);
+    }
+    
+    toast.innerHTML = `
+        <i class="ph-fill ph-heart toast-icon"></i>
+        <span style="flex-grow: 1;">${message}</span>
+        ${actionText ? `<button class="toast-action" id="toastActionBtn">${actionText}</button>` : ''}
+    `;
+    
+    toast.classList.remove('show');
+    
+    if (actionText && actionCallback) {
+        setTimeout(() => {
+            const btn = document.getElementById('toastActionBtn');
+            if (btn) {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    actionCallback();
+                    toast.classList.remove('show');
+                };
+            }
+        }, 0);
+    }
+    
+    toast.offsetHeight; // force reflow
+    toast.classList.add('show');
+    
+    if (window.toastTimeout) {
+        clearTimeout(window.toastTimeout);
+    }
+    window.toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3500);
+}
+
+window.disableFavoritesFilter = function() {
+    if (showFavoritesOnly) {
+        const favToggle = document.getElementById('favoritesToggle');
+        if (favToggle) {
+            favToggle.click();
+        }
+    }
+    const section = document.querySelector('.restaurant-list-section');
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+    }
+};
+
+window.toggleFavorite = function(id, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+    
+    const restaurant = mockData.restaurants.find(r => r.id === id);
+    const rName = restaurant ? restaurant.name : '';
+    
+    const index = favorites.indexOf(id);
+    let added = false;
+    if (index > -1) {
+        favorites.splice(index, 1);
+    } else {
+        favorites.push(id);
+        added = true;
+    }
+    saveFavoritesToStorage();
+    
+    // Re-render restaurant grid to update card hearts
+    renderRestaurants();
+    
+    // Update detail view heart if open
+    if (currentRestaurant && currentRestaurant.id === id) {
+        const favBtn = document.getElementById('detailFavoriteBtn');
+        if (favBtn) {
+            const isFav = favorites.includes(id);
+            if (isFav) {
+                favBtn.classList.add('active');
+                favBtn.querySelector('i').className = 'ph-fill ph-heart';
+            } else {
+                favBtn.classList.remove('active');
+                favBtn.querySelector('i').className = 'ph ph-heart';
+            }
+        }
+    }
+    
+    // Show premium toast
+    if (added) {
+        showToast(
+            `已將「${rName}」加入我的收藏！`, 
+            showFavoritesOnly ? null : '查看收藏', 
+            () => {
+                const favToggle = document.getElementById('favoritesToggle');
+                if (favToggle && !showFavoritesOnly) {
+                    favToggle.click();
+                }
+            }
+        );
+    } else {
+        showToast(`已將「${rName}」移出收藏。`);
+    }
 }
 
 // Theme Management (Light -> Dark -> Outdoor Cycle)
@@ -197,6 +497,11 @@ function setupEventListeners() {
     if (sortSelect) {
         sortSelect.addEventListener('change', (e) => {
             currentSort = e.target.value;
+            loadRestaurantsWithSkeleton();
+        });
+    }
+
+    // Favorites filter toggle listener
     const favToggle = document.getElementById('favoritesToggle');
     if (favToggle) {
         favToggle.addEventListener('click', () => {
@@ -212,7 +517,7 @@ function setupEventListeners() {
         });
     }
 
-    // Filter chips listener
+    // Filter chips listener (e.g. 冷氣開放, 有座位, etc.)
     const filterChips = document.querySelectorAll('.filter-chip-btn');
     filterChips.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -227,6 +532,79 @@ function setupEventListeners() {
             renderRestaurants();
         });
     });
+
+    // Location select change listener
+    const mockSelect = document.getElementById('mockLocationSelect');
+    if (mockSelect) {
+        mockSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (MOCK_LOCATIONS[val]) {
+                userLocation = {
+                    ...MOCK_LOCATIONS[val],
+                    isGPS: false
+                };
+                document.getElementById('currentLocationName').textContent = userLocation.name;
+                
+                const gpsOpt = document.getElementById('gpsSelectOption');
+                if (gpsOpt) {
+                    gpsOpt.remove();
+                }
+                
+                renderRestaurants();
+                if (currentRestaurant) {
+                    const distText = document.getElementById('detailDistanceText');
+                    if (distText) {
+                        const dist = calculateDistance(userLocation.lat, userLocation.lng, currentRestaurant.coordinates.lat, currentRestaurant.coordinates.lng);
+                        distText.textContent = `(距離目前位置 ${formatDistance(dist)})`;
+                    }
+                }
+            }
+        });
+    }
+
+    // GPS button click listener
+    const gpsBtn = document.getElementById('getLocationBtn');
+    if (gpsBtn) {
+        gpsBtn.addEventListener('click', requestGPSLocation);
+    }
+
+    // Open status filter listener
+    const openOnlyToggle = document.getElementById('openOnlyToggle');
+    if (openOnlyToggle) {
+        openOnlyToggle.addEventListener('change', (e) => {
+            showOpenOnly = e.target.checked;
+            renderRestaurants();
+        });
+    }
+
+    // Budget chips listener
+    if (budgetFilterChips) {
+        budgetFilterChips.querySelectorAll('.budget-filter-chip').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const budgetVal = e.currentTarget.dataset.budget;
+                toggleBudgetFilter(budgetVal, e.currentTarget);
+            });
+        });
+    }
+}
+
+function toggleBudgetFilter(budgetVal, btnElement) {
+    const isActive = selectedBudgets.includes(budgetVal);
+    
+    // Keep at least one active to avoid empty results state
+    if (isActive && selectedBudgets.length === 1) {
+        return;
+    }
+    
+    if (isActive) {
+        selectedBudgets = selectedBudgets.filter(b => b !== budgetVal);
+        btnElement.classList.remove('active');
+    } else {
+        selectedBudgets.push(budgetVal);
+        btnElement.classList.add('active');
+    }
+    
+    renderRestaurants();
 }
 
 // Rendering
@@ -274,6 +652,11 @@ function renderRestaurants() {
     
     let filtered = [...mockData.restaurants];
 
+    // Filter by favorites if enabled
+    if (showFavoritesOnly) {
+        filtered = filtered.filter(r => favorites.includes(r.id));
+    }
+
     // Filter by category
     if (currentCategory !== 'all') {
         filtered = filtered.filter(r => r.category === currentCategory);
@@ -292,18 +675,23 @@ function renderRestaurants() {
         filtered = filtered.filter(r => activeFilterTags.every(tag => r.tags.includes(tag)));
     }
 
-    // Sort
-    if (currentSort !== 'default') {
-        filtered = [...filtered]; // clone to avoid sorting in-place on core mockData
-        if (currentSort === 'rating-desc') {
-            filtered.sort((a, b) => b.rating - a.rating);
-        } else if (currentSort === 'reviews-desc') {
-            filtered.sort((a, b) => b.reviewCount - a.reviewCount);
-        } else if (currentSort === 'price-asc') {
-            filtered.sort((a, b) => a.price.length - b.price.length);
-        } else if (currentSort === 'price-desc') {
-            filtered.sort((a, b) => b.price.length - a.price.length);
+    // Filter by open only
+    if (showOpenOnly) {
+        filtered = filtered.filter(r => isRestaurantOpen(r.hours));
+    }
+
+    // Calculate distance to each restaurant
+    filtered.forEach(r => {
+        if (r.coordinates && userLocation) {
+            r.distance = calculateDistance(userLocation.lat, userLocation.lng, r.coordinates.lat, r.coordinates.lng);
+        } else {
+            r.distance = Infinity;
         }
+    });
+
+    // Filter by price (Bottom Sheet)
+    if (currentPriceFilter !== 'all') {
+        filtered = filtered.filter(r => r.price === currentPriceFilter);
     }
 
     // Prioritize restaurants matching selected budgets
@@ -317,9 +705,21 @@ function renderRestaurants() {
             if (!aMatch && bMatch) return 1;
             return 0; // preserve original relative order
         });
-    // Filter by price (Bottom Sheet)
-    if (currentPriceFilter !== 'all') {
-        filtered = filtered.filter(r => r.price === currentPriceFilter);
+    }
+
+    // Sort by selected criteria
+    if (currentSort !== 'default') {
+        if (currentSort === 'distance-asc') {
+            filtered.sort((a, b) => a.distance - b.distance);
+        } else if (currentSort === 'rating-desc') {
+            filtered.sort((a, b) => b.rating - a.rating);
+        } else if (currentSort === 'reviews-desc') {
+            filtered.sort((a, b) => b.reviewCount - a.reviewCount);
+        } else if (currentSort === 'price-asc') {
+            filtered.sort((a, b) => a.price.length - b.price.length);
+        } else if (currentSort === 'price-desc') {
+            filtered.sort((a, b) => b.price.length - a.price.length);
+        }
     }
 
     // Sort by rating or reviews (Bottom Sheet)
@@ -330,16 +730,35 @@ function renderRestaurants() {
     }
 
     if (filtered.length === 0) {
-        restaurantGrid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
-                <i class="ph ph-mask-sad" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                <p>找不到符合的美食，換個篩選條件試試看吧！</p>
-            </div>
-        `;
+        if (showFavoritesOnly) {
+            restaurantGrid.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="ph ph-heart"></i>
+                    </div>
+                    <h3>尚未收藏任何餐廳</h3>
+                    <p style="margin-bottom: 1.5rem;">點擊美食卡片上的愛心，或是進入詳情頁將喜愛的店家加入您的口袋名單吧！</p>
+                    <button class="submit-btn" style="padding: 0.6rem 1.5rem; font-size: 0.9rem;" onclick="disableFavoritesFilter()">
+                        <i class="ph ph-sparkles"></i> 探索熱門美食
+                    </button>
+                </div>
+            `;
+        } else {
+            restaurantGrid.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
+                    <i class="ph ph-mask-sad" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                    <p>找不到符合的美食，換個篩選條件試試看吧！</p>
+                </div>
+            `;
+        }
         return;
     }
 
-    restaurantGrid.innerHTML = filtered.map(r => {
+    restaurantGrid.innerHTML = filtered.map((r, index) => {
+        const isOpen = isRestaurantOpen(r.hours);
+        const isFav = favorites.includes(r.id);
+        const favIconClass = isFav ? 'ph-fill ph-heart' : 'ph ph-heart';
+        
         const isMatching = selectedBudgets.includes(r.price);
         const cardClass = (hasBudgetPreference && !isMatching) ? 'restaurant-card muted' : 'restaurant-card';
         const priceTagClass = hasBudgetPreference ? (isMatching ? 'price-tag matching' : 'price-tag not-matching') : '';
@@ -348,8 +767,21 @@ function renderRestaurants() {
             : '';
 
         return `
-            <div class="${cardClass}" onclick="showDetailView(${r.id})">
-                <img src="${r.image}" alt="${r.name}" class="card-image">
+            <div class="${cardClass}" onclick="showDetailView(${r.id})" style="animation-delay: ${index * 0.05}s; opacity: 0; animation-fill-mode: forwards;">
+                <div class="card-image-wrapper">
+                    <img src="${r.image}" alt="${r.name}" class="card-image">
+                    <button class="favorite-btn ${isFav ? 'active' : ''}" onclick="toggleFavorite(${r.id}, event)" title="${isFav ? '取消收藏' : '加入收藏'}" aria-label="${isFav ? '取消收藏' : '加入收藏'}">
+                        <i class="${favIconClass}"></i>
+                    </button>
+                    <div class="status-badge ${isOpen ? 'open' : 'closed'}" data-restaurant-id="${r.id}">
+                        <span class="status-dot"></span>
+                        <span class="status-text">${isOpen ? '營業中' : '已打烊'}</span>
+                    </div>
+                    <div class="distance-badge">
+                        <i class="ph ph-map-pin"></i>
+                        <span>${formatDistance(r.distance)}</span>
+                    </div>
+                </div>
                 <div class="card-content">
                     <div class="card-header">
                         <h3 class="card-title">${r.name}</h3>
@@ -366,59 +798,6 @@ function renderRestaurants() {
                     <div class="card-tags">
                         ${r.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
                     </div>
-    restaurantGrid.innerHTML = filtered.map(r => `
-        <div class="restaurant-card" onclick="showDetailView(${r.id})">
-            <img src="${r.image}" alt="${r.name}" class="card-image" loading="lazy">
-            <div class="card-content">
-                <div class="card-header">
-                    <h3 class="card-title">${r.name}</h3>
-                    <div class="card-rating">
-                        <i class="ph-fill ph-star"></i>
-                        <span>${r.rating}</span>
-                        <span class="review-count">(${r.reviewCount})</span>
-                    </div>
-                    <h3>尚未收藏任何餐廳</h3>
-                    <p style="margin-bottom: 1.5rem;">點擊美食卡片上的愛心，或是進入詳情頁將喜愛的店家加入您的口袋名單吧！</p>
-                    <button class="submit-btn" style="padding: 0.6rem 1.5rem; font-size: 0.9rem;" onclick="disableFavoritesFilter()">
-                        <i class="ph ph-sparkles"></i> 探索熱門美食
-                    </button>
-                </div>
-            `;
-        } else {
-            restaurantGrid.innerHTML = `
-                <div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--text-muted);">
-                    <i class="ph ph-mask-sad" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                    <p>找不到符合的美食，換個關鍵字試試看吧！</p>
-                </div>
-            `;
-        }
-        return;
-    }
-
-    restaurantGrid.innerHTML = filtered.map(r => {
-        const isOpen = isRestaurantOpen(r.hours);
-        return `
-            <div class="restaurant-card" onclick="showDetailView(${r.id})">
-                <div class="status-badge ${isOpen ? 'open' : 'closed'}" data-restaurant-id="${r.id}">
-                    <span class="status-dot"></span>
-                    <span class="status-text">${isOpen ? '營業中' : '已打烊'}</span>
-                </div>
-                <img src="${r.image}" alt="${r.name}" class="card-image">
-                <div class="card-content">
-                    <div class="card-header">
-                        <h3 class="card-title">${r.name}</h3>
-                        <div class="card-rating">
-                            <i class="ph-fill ph-star"></i>
-                            <span>${r.rating}</span>
-                            <span class="review-count">(${r.reviewCount})</span>
-                        </div>
-                    </div>
-                    <div class="card-info">
-                        <span>${r.price}</span> • <span>${getCategoryName(r.category)}</span>
-                    </div>
-                    <div class="card-tags">
-                        ${r.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-                    </div>
                 </div>
             </div>
         `;
@@ -430,6 +809,8 @@ window.clearAllFilters = function() {
     searchQuery = '';
     currentSort = 'default';
     activeFilterTags = [];
+    showOpenOnly = false;
+    selectedBudgets = ['$', '$$', '$$$'];
 
     // Reset UI inputs
     const searchInput = document.getElementById('searchInput');
@@ -438,8 +819,14 @@ window.clearAllFilters = function() {
     const sortSelect = document.getElementById('sortSelect');
     if (sortSelect) sortSelect.value = 'default';
 
+    const openOnlyToggle = document.getElementById('openOnlyToggle');
+    if (openOnlyToggle) openOnlyToggle.checked = false;
+
     const filterChips = document.querySelectorAll('.filter-chip-btn');
     filterChips.forEach(btn => btn.classList.remove('active'));
+
+    const budgetChips = document.querySelectorAll('.budget-filter-chip');
+    budgetChips.forEach(btn => btn.classList.add('active'));
 
     renderCategories();
     renderRestaurants();
@@ -526,7 +913,6 @@ function updateLiveStatuses() {
     }
 }
 
-
 // Views Navigation
 function showHomeView() {
     detailView.classList.add('hidden');
@@ -551,6 +937,8 @@ function showDetailView(id) {
 function renderDetailContent() {
     const r = currentRestaurant;
     const isOpen = isRestaurantOpen(r.hours);
+    const isFav = favorites.includes(r.id);
+    const favIconClass = isFav ? 'ph-fill ph-heart' : 'ph ph-heart';
     
     detailContent.innerHTML = `
         <div class="detail-header">
@@ -608,20 +996,14 @@ function renderDetailContent() {
 
                 <div class="detail-section">
                     <h3><i class="ph ph-pencil-simple"></i> 新增評價</h3>
-                    <form class="review-form" id="reviewForm" onsubmit="submitReview(event)">
-                        <div class="rating-overall-group">
-                            <span>整體推薦度</span>
-                            <div class="stars-selector overall-stars" data-type="overall">
-                                ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
-                            </div>
-                        </div>
-                        <div class="rating-input-group">
-                            <div class="rating-input">
-                                <span>價格划算度</span>
-                                <div class="stars-selector" data-type="price">
-                                    ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
                     ${userAccount ? `
                         <form class="review-form" id="reviewForm" onsubmit="submitReview(event)">
+                            <div class="rating-overall-group">
+                                <span>整體推薦度</span>
+                                <div class="stars-selector overall-stars" data-type="overall">
+                                    ${[1,2,3,4,5].map(i => `<i class="ph-fill ph-star" data-value="${i}"></i>`).join('')}
+                                </div>
+                            </div>
                             <div class="rating-input-group">
                                 <div class="rating-input">
                                     <span>價格划算度</span>
@@ -766,7 +1148,7 @@ function setupReviewForm() {
     const selectors = document.querySelectorAll('.stars-selector');
     
     selectors.forEach(selector => {
-        const type = selectors[0] ? selector.dataset.type : null; // Ensure safely referenced
+        const type = selector.dataset.type;
         if (!type) return;
         const stars = selector.querySelectorAll('i');
         
@@ -950,26 +1332,6 @@ fontDecrease.addEventListener('click', () => {
     }
 });
 
-        review.reports = (review.reports || 0) + 1;
-        
-        // Save to storage
-        saveReportsToStorage(restaurantId, reviewId, review.reports);
-        
-        if (review.reports > 10) {
-            alert('此評論因收到超過 10 次檢舉，已被系統自動移除！');
-            // Remove review from memory
-            restaurant.reviews = restaurant.reviews.filter(rev => rev.id !== reviewId);
-            restaurant.reviewCount = restaurant.reviews.length;
-            updateRestaurantRating(restaurant);
-            
-            // Delete review from storage completely
-            deleteReviewFromStorage(restaurantId, reviewId);
-            
-            // Re-render
-            renderDetailContent();
-            renderRestaurants(); // update count and rating on home screen
-        } else {
-            alert(`已送出檢舉！目前累計檢舉次數：${review.reports}/11\n您今日剩餘可檢舉次數：${remaining} 次`);
 fontIncrease.addEventListener('click', () => {
     if (currentFontIndex < FONT_CLASSES.length - 1) {
         currentFontIndex++;
@@ -1143,6 +1505,49 @@ applyFiltersBtn.addEventListener('click', () => {
     closeBottomSheet();
     loadRestaurantsWithSkeleton();
 });
+
+window.reportReview = function(restaurantId, reviewId) {
+    const restaurant = mockData.restaurants.find(r => r.id === restaurantId);
+    if (!restaurant) return;
+    const review = restaurant.reviews.find(rev => rev.id === reviewId);
+    if (!review) return;
+
+    // ── 每日檢舉上限：單日最多 5 次 ──
+    const dailyInfo = getUserDailyReportCount();
+    if (dailyInfo.count >= 5) {
+        alert('您今日的檢舉次數已達上限（每人每日最多 5 次），請明日再試！');
+        return;
+    }
+    
+    if (confirm('您確定要檢舉這則評論嗎？')) {
+        // 扣除使用者今日剩餘檢舉配額
+        incrementUserDailyReportCount();
+        const remaining = 4 - dailyInfo.count; // dailyInfo.count is before increment
+        
+        review.reports = (review.reports || 0) + 1;
+        
+        // Save to storage
+        saveReportsToStorage(restaurantId, reviewId, review.reports);
+        
+        if (review.reports > 10) {
+            alert('此評論因收到超過 10 次檢舉，已被系統自動移除！');
+            // Remove review from memory
+            restaurant.reviews = restaurant.reviews.filter(rev => rev.id !== reviewId);
+            restaurant.reviewCount = restaurant.reviews.length;
+            updateRestaurantRating(restaurant);
+            
+            // Delete review from storage completely
+            deleteReviewFromStorage(restaurantId, reviewId);
+            
+            // Re-render
+            renderDetailContent();
+            renderRestaurants(); // update count and rating on home screen
+        } else {
+            alert(`已送出檢舉！目前累計檢舉次數：${review.reports}/11\n您今日剩餘可檢舉次數：${remaining} 次`);
+            renderDetailContent();
+        }
+    }
+};
 
 // Boot
 init();
