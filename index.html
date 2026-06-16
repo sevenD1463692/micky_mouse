@@ -26,9 +26,15 @@
                 <i class="ph ph-magnifying-glass"></i>
                 <input type="text" id="searchInput" placeholder="搜尋逢甲美食...">
             </div>
-            <button id="themeToggle" class="icon-btn" aria-label="切換深淺色模式">
-                <i class="ph ph-moon"></i>
-            </button>
+            <div class="header-actions">
+                <button id="favoritesToggle" class="icon-btn" aria-label="查看我的收藏" title="我的收藏">
+                    <i class="ph ph-heart"></i>
+                    <span id="favoritesBadge" class="badge hidden">0</span>
+                </button>
+                <button id="themeToggle" class="icon-btn" aria-label="切換深淺色模式">
+                    <i class="ph ph-moon"></i>
+                </button>
+            </div>
         </header>
 
         <!-- Main Content -->
@@ -71,16 +77,13 @@
                 </section>
                 
                 <section class="restaurant-list-section">
-                    <div class="section-header-flex">
+                    <div class="section-header">
                         <h2>推薦美食</h2>
-                        <div class="sort-tabs" id="sortTabs">
-                            <button class="sort-tab active" data-sort="recommended">
-                                <i class="ph-fill ph-sparkles"></i> 綜合推薦
-                            </button>
-                            <button class="sort-tab" data-sort="distance">
-                                <i class="ph-fill ph-compass"></i> 距離最近
-                            </button>
-                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="openOnlyToggle">
+                            <span class="slider"></span>
+                            <span class="toggle-label">只看營業中</span>
+                        </label>
                     </div>
                     <div class="restaurant-grid" id="restaurantGrid">
                         <!-- Restaurant cards injected by JS -->
