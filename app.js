@@ -478,8 +478,8 @@ function debounce(func, delay) {
 }
 
 function setupEventListeners() {
-    searchInput.addEventListener('input', debounce((e) => {
-        searchQuery = e.target.value.toLowerCase();
+    searchInput.addEventListener('input', debounce(() => {
+        searchQuery = searchInput.value.toLowerCase();
         loadRestaurantsWithSkeleton();
     }, 250));
 
