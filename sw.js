@@ -1,10 +1,10 @@
-const CACHE_NAME = 'fcu-eats-v7';
+const CACHE_NAME = 'fcu-eats-v8';
 const ASSETS = [
     './',
     './index.html',
-    './style.css',
-    './app.js',
-    './mockData.js',
+    './style.css?v=8',
+    './app.js?v=8',
+    './mockData.js?v=8',
     'https://unpkg.com/@phosphor-icons/web'
 ];
 
