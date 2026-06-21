@@ -47,7 +47,7 @@ const anonymousDefault = document.getElementById('anonymousDefault');
 const floatingFilterBtn = document.getElementById('floatingFilterBtn');
 const bottomSheet = document.getElementById('bottomSheet');
 const bottomSheetBackdrop = document.getElementById('bottomSheetBackdrop');
-const closeBottomSheet = document.getElementById('closeBottomSheet');
+const closeBottomSheetBtn = document.getElementById('closeBottomSheet');
 const applyFiltersBtn = document.getElementById('applyFiltersBtn');
 const navHome = document.getElementById('navHome');
 const navFilterBtn = document.getElementById('navFilterBtn');
@@ -1473,8 +1473,8 @@ window.closeBottomSheet = function() {
     bottomSheet.classList.add('hidden');
 };
 
-bottomSheetBackdrop.addEventListener('click', closeBottomSheet);
-closeBottomSheet.addEventListener('click', closeBottomSheet);
+bottomSheetBackdrop.addEventListener('click', window.closeBottomSheet);
+closeBottomSheetBtn.addEventListener('click', window.closeBottomSheet);
 floatingFilterBtn.addEventListener('click', openBottomSheet);
 
 function setupMobileNav() {
