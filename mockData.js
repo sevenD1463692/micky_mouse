@@ -642,6 +642,296 @@ const mockData = {
                     comment: '經典的擔仔麵，加點大蒜更香。滷肉飯跟滷大腸也很推薦，價格實在。'
                 }
             ]
+        },
+        {
+            id: 23,
+            name: '甲文青茶飲飲料 (逢甲創始店)',
+            category: 'drinks',
+            tags: ['手搖飲料', '熱門飲料', '快速'],
+            image: 'https://images.unsplash.com/photo-1597839219216-a773cb2473e4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.3,
+            reviewCount: 92,
+            price: '$',
+            address: '台中市西屯區福星路427號',
+            coordinates: { lat: 24.179300, lng: 120.645100 },
+            hours: '10:00 - 22:00',
+            description: '充滿文青風格的特色手搖飲，主打招牌雷蒙首選（檸檬系列飲料），口感清爽解渴。',
+            reviews: [
+                {
+                    id: 2301,
+                    user: '檸檬控',
+                    date: '2024-03-05',
+                    ratings: {
+                        price: 4,
+                        portion: 4,
+                        waitTime: 4,
+                        sitability: 1
+                    },
+                    overallRating: 4.3,
+                    comment: '半熟檸檬青茶超級好喝！酸甜度剛好，很適合逛完夜市買一杯解膩，店面裝潢也很有特色。'
+                }
+            ]
+        },
+        {
+            id: 24,
+            name: '逢甲冰菓室',
+            category: 'dessert',
+            tags: ['甜點冰品', '有座位', '冷氣開放', '排隊名店'],
+            image: 'https://images.unsplash.com/photo-1501443762994-82bd5dace89a?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.6,
+            reviewCount: 148,
+            price: '$$',
+            address: '台中市西屯區逢甲路180號',
+            coordinates: { lat: 24.179800, lng: 120.644900 },
+            hours: '12:00 - 23:00',
+            description: '主打復古文青風格，以整顆哈密瓜或鳳梨製成的巨無霸創意水果冰淇淋聞名，視覺與味覺的雙重享受。',
+            reviews: [
+                {
+                    id: 2401,
+                    user: '冰品狂熱者',
+                    date: '2024-03-10',
+                    ratings: {
+                        price: 3,
+                        portion: 5,
+                        waitTime: 3,
+                        sitability: 4
+                    },
+                    overallRating: 4.6,
+                    comment: '哈密瓜雪花冰超吸睛！一整半顆哈密瓜加上一球球的果肉和冰淇淋，拍照發 IG 超好看，味道也很天然甜。'
+                }
+            ]
+        },
+        {
+            id: 25,
+            name: '金享綠豆沙牛乳',
+            category: 'drinks',
+            tags: ['手搖飲料', '排隊名店', '傳統小吃'],
+            image: 'https://images.unsplash.com/photo-1553787499-6f9133860278?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.4,
+            reviewCount: 110,
+            price: '$',
+            address: '台中市西屯區逢甲路19巷',
+            coordinates: { lat: 24.179100, lng: 120.644700 },
+            hours: '12:00 - 22:30',
+            description: '逢甲老牌排隊綠豆沙，口感極度細緻綿密，濃郁綠豆香氣混合香醇鮮乳，是逛街消暑極品。',
+            reviews: [
+                {
+                    id: 2501,
+                    user: '綠豆沙粉',
+                    date: '2024-03-12',
+                    ratings: {
+                        price: 5,
+                        portion: 4,
+                        waitTime: 3,
+                        sitability: 1
+                    },
+                    overallRating: 4.4,
+                    comment: '綠豆沙非常綿密完全吃不到冰沙顆粒，配上鮮乳超級順口！每次來逢甲都一定要排隊買一杯。'
+                }
+            ]
+        },
+        {
+            id: 26,
+            name: '朴大哥的韓式炸雞',
+            category: 'snacks',
+            tags: ['有座位', '聚餐', '重口味', '冷氣開放'],
+            image: 'https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.5,
+            reviewCount: 224,
+            price: '$$',
+            address: '台中市西屯區逢甲路20巷28弄5號',
+            coordinates: { lat: 24.180200, lng: 120.648000 },
+            hours: '17:00 - 01:30',
+            description: '全台第一家韓式炸雞店，由韓國人親自經營。招牌紅醬與黑醬炸雞甜辣多汁，適合三五好友聚會。',
+            reviews: [
+                {
+                    id: 2601,
+                    user: '韓流熱愛者',
+                    date: '2024-03-15',
+                    ratings: {
+                        price: 3,
+                        portion: 4,
+                        waitTime: 4,
+                        sitability: 5
+                    },
+                    overallRating: 4.5,
+                    comment: '招牌黑醬炸雞非常好吃，醬汁裹得很均勻，雞肉很嫩。內用可以點啤酒搭配（未成年請勿飲酒），氣氛超嗨。'
+                }
+            ]
+        },
+        {
+            id: 27,
+            name: '赤鬼炙燒牛排 (逢甲店)',
+            category: 'bento',
+            tags: ['聚餐', '有座位', '冷氣開放', '排隊名店'],
+            image: 'https://images.unsplash.com/photo-1544025162-811114cd354a?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.4,
+            reviewCount: 310,
+            price: '$$$',
+            address: '台中市西屯區文華路11號',
+            coordinates: { lat: 24.177000, lng: 120.646000 },
+            hours: '11:00 - 22:30',
+            description: '台灣知名連鎖平價炙燒牛排，精緻奢華的內部裝潢，提供美味爆漿餐包與無限自助湯品。',
+            reviews: [
+                {
+                    id: 2701,
+                    user: '牛排狂人',
+                    date: '2024-03-20',
+                    ratings: {
+                        price: 4,
+                        portion: 4,
+                        waitTime: 4,
+                        sitability: 4
+                    },
+                    overallRating: 4.4,
+                    comment: '沙朗牛排肉質有嚼勁，黑胡椒醬非常夠味。餐包一定要趁熱吃，會爆漿！羅宋湯也是料多實在。'
+                }
+            ]
+        },
+        {
+            id: 28,
+            name: '重慶川辣酸辣粉',
+            category: 'noodles',
+            tags: ['重口味', '有座位', '平價首選', '冷氣開放'],
+            image: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.3,
+            reviewCount: 115,
+            price: '$',
+            address: '台中市西屯區文華路路段',
+            coordinates: { lat: 24.180500, lng: 120.645700 },
+            hours: '11:00 - 21:00',
+            description: '正宗重慶口味酸辣粉，紅薯粉條香Q有彈性，酸辣交織、香氣撲鼻，嗜辣者必吃。',
+            reviews: [
+                {
+                    id: 2801,
+                    user: '嗜辣星人',
+                    date: '2024-03-22',
+                    ratings: {
+                        price: 5,
+                        portion: 4,
+                        waitTime: 4,
+                        sitability: 3
+                    },
+                    overallRating: 4.3,
+                    comment: '酸度跟辣度都可以調整，點中辣酸辣過癮！紅薯粉條非常彈牙。內用空間稍微小了點。'
+                }
+            ]
+        },
+        {
+            id: 29,
+            name: '馬崗豆花 (逢甲店)',
+            category: 'dessert',
+            tags: ['甜點冰品', '傳統小吃', '有座位'],
+            image: 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.5,
+            reviewCount: 88,
+            price: '$',
+            address: '台中市西屯區福星路',
+            coordinates: { lat: 24.175000, lng: 120.648000 },
+            hours: '10:00 - 22:30',
+            description: '台中在地老字號手工豆花，豆花質地細緻、入口即化，糖水清甜，亦可搭配香濃豆漿。',
+            reviews: [
+                {
+                    id: 2901,
+                    user: '豆花收藏家',
+                    date: '2024-03-25',
+                    ratings: {
+                        price: 4,
+                        portion: 4,
+                        waitTime: 4,
+                        sitability: 4
+                    },
+                    overallRating: 4.5,
+                    comment: '傳統的古早味豆花，口感非常綿密。配料的花生跟芋圓也煮得很好吃，糖水喝起來不會太甜膩。'
+                }
+            ]
+        },
+        {
+            id: 30,
+            name: '徐師傅麻辣鴨血臭豆腐',
+            category: 'hotpot',
+            tags: ['重口味', '有座位', '冷氣開放', '平價火鍋'],
+            image: 'https://images.unsplash.com/photo-1547928576-a4a33237eceb?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.4,
+            reviewCount: 142,
+            price: '$$',
+            address: '台中市西屯區福星路',
+            coordinates: { lat: 24.179400, lng: 120.645000 },
+            hours: '16:30 - 00:30',
+            description: '香辣濃育的鴨血豆腐煲，鴨血滑嫩入味、臭豆腐吸飽湯汁，是很多學生晚餐與宵夜的熱門選擇。',
+            reviews: [
+                {
+                    id: 3001,
+                    user: '鴨血控',
+                    date: '2024-03-28',
+                    ratings: {
+                        price: 4,
+                        portion: 5,
+                        waitTime: 4,
+                        sitability: 3
+                    },
+                    overallRating: 4.4,
+                    comment: '鴨血非常嫩且非常入味，豆腐咬下去會噴汁！平價個人煲還有加麵，吃得很飽。'
+                }
+            ]
+        },
+        {
+            id: 31,
+            name: '小胖鮮鍋 (逢甲店)',
+            category: 'hotpot',
+            tags: ['有座位', '冷氣開放', '聚餐', '高價精緻'],
+            image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.8,
+            reviewCount: 156,
+            price: '$$$',
+            address: '台中市西屯區河南路二段',
+            coordinates: { lat: 24.176500, lng: 120.647500 },
+            hours: '11:30 - 23:00',
+            description: '高品質海鮮與頂級肉品火鍋，食材極度新鮮，內用環境寬敞精緻，並有明治冰淇淋無限享用。',
+            reviews: [
+                {
+                    id: 3101,
+                    user: '海鮮大師',
+                    date: '2024-04-01',
+                    ratings: {
+                        price: 3,
+                        portion: 4,
+                        waitTime: 4,
+                        sitability: 5
+                    },
+                    overallRating: 4.8,
+                    comment: '海鮮盤超級新鮮，蛤蜊超大顆還是活的！肉質也很棒。內用飲料吧跟冰淇淋種類很多，聚餐首選。'
+                }
+            ]
+        },
+        {
+            id: 32,
+            name: '黑輪美 (逢甲店)',
+            category: 'snacks',
+            tags: ['特色小吃', '排隊名店', '有座位'],
+            image: 'https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.3,
+            reviewCount: 98,
+            price: '$',
+            address: '台中市西屯區文華路10-11號',
+            coordinates: { lat: 24.180100, lng: 120.646800 },
+            hours: '14:00 - 23:00',
+            description: '主打創意「炸黑輪」與關東煮，將黑輪炸得外酥內軟，刷上獨特醬汁，十分美味特別。',
+            reviews: [
+                {
+                    id: 3201,
+                    user: '炸物愛好者',
+                    date: '2024-04-05',
+                    ratings: {
+                        price: 4,
+                        portion: 4,
+                        waitTime: 4,
+                        sitability: 3
+                    },
+                    overallRating: 4.3,
+                    comment: '第一次吃炸的黑輪！外皮超酥脆，特製黑輪醬微甜微辣非常搭，價格也很劃算，大推！'
+                }
+            ]
         }
     ]
 };
