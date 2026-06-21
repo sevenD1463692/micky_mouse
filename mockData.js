@@ -410,6 +410,238 @@ const mockData = {
                     comment: '咖哩醬很濃郁微甜，豬排很厚而且炸得很酥脆，飯跟醬還可以免費續一次，CP值超高！'
                 }
             ]
+        },
+        {
+            id: 15,
+            name: '日船章魚小丸子',
+            category: 'snacks',
+            tags: ['排隊名店', '特色小吃', '銅板美食'],
+            image: 'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.6,
+            reviewCount: 412,
+            price: '$',
+            address: '台中市西屯區文華路13號',
+            coordinates: { lat: 24.179700, lng: 120.645200 },
+            hours: '15:00 - 01:00',
+            description: '逢甲夜市最著名的地標美食之一，外皮焦脆、內餡軟嫩的章魚燒，柴魚片與芥末醬堪稱完美。',
+            reviews: [
+                {
+                    id: 1501,
+                    user: '章魚燒愛好者',
+                    date: '2024-01-10',
+                    ratings: {
+                        price: 4,
+                        portion: 4,
+                        waitTime: 3,
+                        sitability: 1
+                    },
+                    overallRating: 4.6,
+                    comment: '每次來都必買！芥末醬很夠味，章魚塊也算大。現做剛起鍋超燙，吃的時候要小心。'
+                }
+            ]
+        },
+        {
+            id: 16,
+            name: '大甲芋頭城',
+            category: 'dessert',
+            tags: ['傳統小吃', '甜點冰品', '排隊名店', '有座位'],
+            image: 'https://images.unsplash.com/photo-1600718374662-0483d2b9da44?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.5,
+            reviewCount: 204,
+            price: '$',
+            address: '台中市西屯區福星路461巷2-2號',
+            coordinates: { lat: 24.179900, lng: 120.645400 },
+            hours: '13:00 - 00:00',
+            description: '軟綿香甜的蜜芋頭與手工芋圓，是芋頭控來逢甲絕對不能錯過的朝聖甜品。',
+            reviews: [
+                {
+                    id: 1601,
+                    user: '蜜芋頭粉',
+                    date: '2024-01-15',
+                    ratings: {
+                        price: 4,
+                        portion: 5,
+                        waitTime: 4,
+                        sitability: 3
+                    },
+                    overallRating: 4.5,
+                    comment: '芋頭燉得非常綿密入味，手工芋圓很有嚼勁。強烈推薦芋頭牛奶冰或是熱的芋頭西米露！'
+                }
+            ]
+        },
+        {
+            id: 17,
+            name: '86碳烤雞排',
+            category: 'snacks',
+            tags: ['特色小吃', '銅板美食', '重口味'],
+            image: 'https://images.unsplash.com/photo-1606755962773-d324e0a13086?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.3,
+            reviewCount: 180,
+            price: '$',
+            address: '台中市西屯區逢甲路20巷',
+            coordinates: { lat: 24.179500, lng: 120.645300 },
+            hours: '16:00 - 01:30',
+            description: '先炸後烤的超大雞排，刷上甜鹹的特製炭烤醬汁，香氣四溢、多汁美味。',
+            reviews: [
+                {
+                    id: 1701,
+                    user: '雞排狂熱者',
+                    date: '2024-02-01',
+                    ratings: {
+                        price: 4,
+                        portion: 5,
+                        waitTime: 3,
+                        sitability: 1
+                    },
+                    overallRating: 4.3,
+                    comment: '碳烤醬甜甜鹹鹹的非常入味，肉質不會乾柴。份量蠻大的，吃一份就很有飽足感。'
+                }
+            ]
+        },
+        {
+            id: 18,
+            name: '梅香小吃',
+            category: 'bento',
+            tags: ['便當快餐', '老店', '平價首選', '有座位'],
+            image: 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.4,
+            reviewCount: 165,
+            price: '$',
+            address: '台中市西屯區逢甲路26號',
+            coordinates: { lat: 24.178200, lng: 120.645800 },
+            hours: '11:00 - 20:00',
+            description: '逢甲老字號學餐，最出名的招牌是胡椒飯與辣椒飯，平價又美味，深受代代學生喜愛。',
+            reviews: [
+                {
+                    id: 1801,
+                    user: '資深逢甲校友',
+                    date: '2024-02-05',
+                    ratings: {
+                        price: 5,
+                        portion: 4,
+                        waitTime: 4,
+                        sitability: 3
+                    },
+                    overallRating: 4.4,
+                    comment: '回憶中的味道！胡椒飯的胡椒香氣超級下飯，便宜又大碗，學生時代幾乎每週都來吃。'
+                }
+            ]
+        },
+        {
+            id: 19,
+            name: '得正 Oolong Tea Project',
+            category: 'drinks',
+            tags: ['熱門飲料', '連鎖', '快速'],
+            image: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.6,
+            reviewCount: 132,
+            price: '$',
+            address: '台中市西屯區福星路382號',
+            coordinates: { lat: 24.177500, lng: 120.645000 },
+            hours: '10:00 - 22:00',
+            description: '主打烏龍茶系列的超人氣手搖飲，茶香清雅，推薦焙烏龍鮮奶茶與焙烏龍茶凍。',
+            reviews: [
+                {
+                    id: 1901,
+                    user: '每天一杯手搖',
+                    date: '2024-02-12',
+                    ratings: {
+                        price: 4,
+                        portion: 4,
+                        waitTime: 4,
+                        sitability: 1
+                    },
+                    overallRating: 4.6,
+                    comment: '得正的烏龍茶凍真的超級讚，吃起來很有茶香，搭配焙烏龍鮮奶茶微糖微冰最對味！'
+                }
+            ]
+        },
+        {
+            id: 20,
+            name: '李記蒸餃',
+            category: 'noodles',
+            tags: ['麵食水餃', '有座位', '傳統小吃', '平價首選'],
+            image: 'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.2,
+            reviewCount: 95,
+            price: '$',
+            address: '台中市西屯區文華路162巷',
+            coordinates: { lat: 24.181200, lng: 120.646500 },
+            hours: '11:00 - 01:30',
+            description: '平價又好吃的現包現蒸蒸餃，皮薄餡多，也是許多同學吃宵夜與晚餐的經典去處。',
+            reviews: [
+                {
+                    id: 2001,
+                    user: '宵夜通',
+                    date: '2024-02-18',
+                    ratings: {
+                        price: 5,
+                        portion: 4,
+                        waitTime: 4,
+                        sitability: 3
+                    },
+                    overallRating: 4.2,
+                    comment: '蒸餃皮薄且多汁，一籠非常便宜！酸辣湯也很夠味，宵夜吃這個非常罪惡但很滿足。'
+                }
+            ]
+        },
+        {
+            id: 21,
+            name: '築間幸福鍋物 (台中逢甲店)',
+            category: 'hotpot',
+            tags: ['有座位', '冷氣開放', '聚餐', '宵夜首選'],
+            image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.7,
+            reviewCount: 288,
+            price: '$$$',
+            address: '台中市西屯區逢甲路路段',
+            coordinates: { lat: 24.175500, lng: 120.647000 },
+            hours: '11:00 - 04:00',
+            description: '精緻的個人石頭火鍋，提供豐富的自助吧蔬菜吃到飽，營業至凌晨四點是夜貓子聚會首選。',
+            reviews: [
+                {
+                    id: 2101,
+                    user: '火鍋控小智',
+                    date: '2024-02-22',
+                    ratings: {
+                        price: 3,
+                        portion: 5,
+                        waitTime: 4,
+                        sitability: 5
+                    },
+                    overallRating: 4.7,
+                    comment: '自助蔬菜吧配料選擇很多，食材新鮮，石頭火鍋的湯底非常香。開到很晚真的很方便！'
+                }
+            ]
+        },
+        {
+            id: 22,
+            name: '阿三哥擔仔麵',
+            category: 'noodles',
+            tags: ['傳統小吃', '有座位', '平價首選'],
+            image: 'https://images.unsplash.com/photo-1552611052-33e04de081de?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80',
+            rating: 4.1,
+            reviewCount: 78,
+            price: '$',
+            address: '台中市西屯區文華路段',
+            coordinates: { lat: 24.178500, lng: 120.645600 },
+            hours: '17:00 - 02:00',
+            description: '傳統的擔仔麵、滷肉飯與豐富 of 許多切小菜，老實樸實的美味，溫暖夜晚晚歸學子的胃。',
+            reviews: [
+                {
+                    id: 2201,
+                    user: '夜讀生',
+                    date: '2024-03-01',
+                    ratings: {
+                        price: 5,
+                        portion: 4,
+                        waitTime: 5,
+                        sitability: 3
+                    },
+                    overallRating: 4.1,
+                    comment: '經典的擔仔麵，加點大蒜更香。滷肉飯跟滷大腸也很推薦，價格實在。'
+                }
+            ]
         }
     ]
 };
