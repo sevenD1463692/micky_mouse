@@ -1305,7 +1305,7 @@ window.submitReview = function(e) {
         date: new Date().toISOString().split('T')[0],
         ratings: { ...currentFormRatings },
         overallRating: currentFormRatings.overall,
-        comment: comment,
+        comment: escapedComment,
         reports: 0
     };
     

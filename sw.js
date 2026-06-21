@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fcu-eats-v4';
+const CACHE_NAME = 'fcu-eats-v5';
 const ASSETS = [
     './',
     './index.html',
