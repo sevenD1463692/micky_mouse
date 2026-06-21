@@ -626,7 +626,7 @@ const mockData = {
             address: '台中市西屯區文華路段',
             coordinates: { lat: 24.178500, lng: 120.645600 },
             hours: '17:00 - 02:00',
-            description: '傳統的擔仔麵、滷肉飯與豐富 of 許多切小菜，老實樸實的美味，溫暖夜晚晚歸學子的胃。',
+            description: '傳統的擔仔麵、滷肉飯與豐富的黑白切小菜，老實樸實的美味，溫暖夜晚晚歸學子的胃。',
             reviews: [
                 {
                     id: 2201,
